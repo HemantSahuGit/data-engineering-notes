@@ -1,4 +1,7 @@
-
+<table width="100%">
+<tr>
+<td>
+  
 # Microsoft Fabric - Comprehensive Learning & Interview Preparation Guide
 
 **Date Started:** April 24, 2026  
@@ -26102,3 +26105,7 @@ When and why you'd use this.
 3. **Q:** Practical/scenario-based question?
    **A:** Real-world application answer.
 ```
+
+</td>
+</tr>
+</table>
