@@ -1,5 +1,144 @@
 # Azure Data Factory (ADF) - Comprehensive Notes
 
+---
+
+## 📑 Table of Contents
+
+### **Part I: Fundamentals**
+1. [What is Azure Data Factory?](#1-what-is-azure-data-factory)
+2. [Why use ADF?](#2-why-use-adf)
+3. [Core Architecture (High-Level)](#3-core-architecture-high-level)
+4. [Important Terminologies and Definitions](#4-important-terminologies-and-definitions)
+   - 4.1 [Factory](#41-factory)
+   - 4.2 [Pipeline](#42-pipeline)
+   - 4.3 [Activity](#43-activity)
+   - 4.4 [Linked Service](#44-linked-service)
+   - 4.5 [Dataset](#45-dataset)
+   - 4.6 [Integration Runtime (IR)](#46-integration-runtime-ir)
+   - 4.7 [Trigger](#47-trigger)
+   - 4.8 [Parameters and Variables](#48-parameters-and-variables)
+   - 4.9 [Expressions and Functions](#49-expressions-and-functions)
+
+### **Part II: Core Components**
+5. [Linked Services in Detail](#5-linked-services-in-detail)
+6. [Datasets in Detail](#6-datasets-in-detail)
+7. [Integration Runtime (IR) Types](#7-integration-runtime-ir-types)
+8. [Pipelines and Activities](#8-pipelines-and-activities)
+
+### **Part III: Data Movement Activities**
+9. [Copy Activity](#9-copy-activity)
+10. [Delete Activity](#10-delete-activity)
+11. [Get Metadata Activity](#11-get-metadata-activity)
+12. [Lookup Activity](#12-lookup-activity)
+13. [Validation Activity](#13-validation-activity)
+
+### **Part IV: Control Flow Activities**
+14. [ForEach Activity](#14-foreach-activity)
+15. [If Condition Activity](#15-if-condition-activity)
+16. [Switch Activity](#16-switch-activity)
+17. [Until Activity](#17-until-activity)
+18. [Wait Activity](#18-wait-activity)
+19. [Execute Pipeline Activity](#19-execute-pipeline-activity)
+20. [Set Variable Activity](#20-set-variable-activity)
+21. [Append Variable Activity](#21-append-variable-activity)
+
+### **Part V: Transformation Activities**
+22. [Execute Data Flow Activity](#22-execute-data-flow-activity)
+23. [Stored Procedure Activity](#23-stored-procedure-activity)
+24. [Script Activity](#24-script-activity)
+25. [Azure Function Activity](#25-azure-function-activity)
+26. [Custom Activity](#26-custom-activity)
+27. [Databricks Notebook Activity](#27-databricks-notebook-activity)
+28. [Web Activity](#28-web-activity)
+
+### **Part VI: Triggers**
+29. [Schedule Trigger](#29-schedule-trigger)
+30. [Tumbling Window Trigger](#30-tumbling-window-trigger)
+31. [Storage Event Trigger](#31-storage-event-trigger)
+32. [Custom Event Trigger](#32-custom-event-trigger)
+
+### **Part VII: Data Flow**
+33. [Mapping Data Flow](#33-mapping-data-flow)
+34. [Wrangling Data Flow](#34-wrangling-data-flow)
+
+### **Part VIII: Advanced Topics**
+35. [Parameters vs Variables](#35-parameters-vs-variables)
+36. [Dynamic Content and Expressions](#36-dynamic-content-and-expressions)
+37. [Global Parameters](#37-global-parameters)
+38. [Managed Identity and Security](#38-managed-identity-and-security)
+39. [CI/CD with Git Integration](#39-cicd-with-git-integration)
+40. [Monitoring and Alerting](#40-monitoring-and-alerting)
+
+### **Part IX: Recently Added Topics**
+41. [Schedule Trigger (Advanced)](#41-schedule-trigger-advanced)
+   - 41.1 [Recurrence Patterns](#411-recurrence-patterns)
+   - 41.2 [Time Zones](#412-time-zones)
+   - 41.3 [Use Cases](#413-use-cases)
+   - 41.4 [Troubleshooting](#414-troubleshooting)
+   - 41.5 [Interview Questions](#415-interview-questions)
+
+42. [Set Variables Activity (Advanced)](#42-set-variables-activity-advanced)
+   - 42.1 [Variable Types](#421-variable-types)
+   - 42.2 [Use Cases](#422-use-cases)
+   - 42.3 [Limitations and Workarounds](#423-limitations-and-workarounds)
+   - 42.4 [Interview Questions](#424-interview-questions)
+
+43. [Delete Activity (Advanced)](#43-delete-activity-advanced)
+   - 43.1 [Supported Stores](#431-supported-stores)
+   - 43.2 [File Path Types](#432-file-path-types)
+   - 43.3 [Use Cases](#433-use-cases)
+   - 43.4 [Logging Configuration](#434-logging-configuration)
+   - 43.5 [Interview Questions](#435-interview-questions)
+
+44. [Tumbling Window Trigger (Advanced)](#44-tumbling-window-trigger-advanced)
+   - 44.1 [Comparison with Schedule Trigger](#441-comparison-with-schedule-trigger)
+   - 44.2 [Backfill Support](#442-backfill-support)
+   - 44.3 [Retry Policy](#443-retry-policy)
+   - 44.4 [Tumbling Window Dependencies](#444-tumbling-window-dependencies)
+   - 44.5 [Interview Questions](#445-interview-questions)
+
+45. [Event-Based Triggers (Advanced)](#45-event-based-triggers-advanced)
+   - 45.1 [Storage Event Trigger](#451-storage-event-trigger)
+   - 45.2 [Custom Event Trigger](#452-custom-event-trigger)
+   - 45.3 [Event System Variables](#453-event-system-variables)
+   - 45.4 [Best Practices](#454-best-practices)
+   - 45.5 [Interview Questions](#455-interview-questions)
+
+### **Part X: Interview Preparation**
+46. [Scenario-Based Interview Questions with Detailed Answers](#46-scenario-based-interview-questions-with-detailed-answers)
+   - 46.1 [Data Migration and ETL Scenarios](#461-data-migration-and-etl-scenarios)
+   - 46.2 [Error Handling and Retry Scenarios](#462-error-handling-and-retry-scenarios)
+   - 46.3 [Performance Optimization Scenarios](#463-performance-optimization-scenarios)
+   - 46.4 [Security and Access Control Scenarios](#464-security-and-access-control-scenarios)
+   - 46.5 [Advanced Integration Scenarios](#465-advanced-integration-scenarios)
+   - 46.6 [Real-Time and Streaming Scenarios](#466-real-time-and-streaming-scenarios)
+
+47. [Most Asked Azure Data Factory Interview Questions (2026)](#47-most-asked-azure-data-factory-interview-questions-2026)
+   - 47.1 [Fundamental Concepts](#471-fundamental-concepts)
+   - 47.2 [Activities and Pipeline Execution](#472-activities-and-pipeline-execution)
+   - 47.3 [Triggers and Scheduling](#473-triggers-and-scheduling)
+   - 47.4 [Data Flow and Transformations](#474-data-flow-and-transformations)
+   - 47.5 [Advanced Topics](#475-advanced-topics)
+
+---
+
+## 🎯 Quick Navigation Guide
+
+**For Beginners**: Start with Part I (Fundamentals) and Part II (Core Components)
+
+**For Interview Preparation**: 
+- Focus on Part X (Sections 46-47) for comprehensive scenario-based and frequently asked questions
+- Review Part III-V for activity-specific questions
+- Study Part VI for trigger-related questions
+
+**For Advanced Users**: 
+- Part VIII (Advanced Topics) covers CI/CD, security, and monitoring
+- Part IX contains deep-dive topics with real-world case studies
+
+**For Quick Reference**: Use Ctrl/Cmd+F to search for specific topics
+
+---
+
 ## 1. What is Azure Data Factory?
 
 Azure Data Factory (ADF) is a cloud-native data integration and orchestration service on Microsoft Azure used to build, schedule, and monitor ETL/ELT data pipelines.
@@ -11202,4 +11341,6528 @@ GetMetadata → Filter → ForEach → Delete
 - Test patterns with Get Metadata first
 - Use dependency conditions for safety
 - Implement retention policies, not immediate deletion
+
+
+---
+
+## 41. Schedule Trigger in Azure Data Factory - Complete Guide
+
+### 41.1 What is Schedule Trigger?
+
+## Definition:
+**Schedule Trigger** is a trigger type in ADF that invokes a pipeline on a wall-clock calendar schedule. It runs pipelines at predetermined times or on recurring intervals based on calendar patterns.
+
+Think of it as: **Cron job for cloud pipelines - automated execution based on time.**
+
+## Purpose:
+- Automate pipeline execution without manual intervention
+- Run ETL jobs at specific times (daily, weekly, monthly)
+- Support business schedules (end of day, month-end processing)
+- Enable advanced calendar-based patterns
+- Schedule batch processing jobs
+
+## Key Characteristics:
+- **Fire-and-forget behavior**: Trigger marks as successful once pipeline starts
+- **Flexible scheduling**: Supports simple to complex recurrence patterns
+- **Many-to-many**: One trigger can start multiple pipelines, or multiple triggers can start one pipeline
+- **No state retention**: Unlike tumbling window, doesn't maintain state
+- **Calendar-aware**: Handles time zones, daylight saving, holidays
+
+### 41.2 Schedule Trigger Architecture
+
+```mermaid
+flowchart TB
+    A[Schedule Trigger] --> B{Execution Time?}
+    B -->|Yes| C[Start Pipeline Run]
+    B -->|No| D[Wait]
+    C --> E[Pipeline Executes]
+    E --> F[Activities Run]
+    F --> G[Completion]
+    C --> H[Trigger Marks Success]
+    H --> I[Trigger Doesn't Wait]
+    
+    style A fill:#FFD700
+    style C fill:#90EE90
+    style H fill:#87CEEB
+```
+
+**Workflow:**
+1. **Schedule evaluation**: Trigger checks current time against schedule
+2. **Pipeline invocation**: If time matches, pipeline run is created
+3. **Immediate return**: Trigger doesn't wait for pipeline completion
+4. **Pipeline execution**: Pipeline runs independently
+5. **Next occurrence**: Trigger waits for next scheduled time
+
+### 41.3 Creating Schedule Trigger
+
+## In UI (Author Tab):
+1. Go to pipeline
+2. Click "Add trigger" → "New/Edit"
+3. Select "+ New"
+4. Choose "Schedule" as trigger type
+5. Configure:
+   - **Name**: Unique trigger name
+   - **Description**: Purpose of trigger
+   - **Start date/time**: When to begin
+   - **End date/time**: When to stop (optional)
+   - **Time zone**: Appropriate time zone
+   - **Recurrence**: Pattern (hourly, daily, weekly, monthly)
+   - **Advanced settings**: Complex patterns
+6. Associate with pipelines
+7. Publish
+
+## JSON Definition:
+```json
+{
+    "name": "tr_daily_sales_processing",
+    "properties": {
+        "type": "ScheduleTrigger",
+        "typeProperties": {
+            "recurrence": {
+                "frequency": "Day",
+                "interval": 1,
+                "startTime": "2026-01-01T00:00:00Z",
+                "endTime": "2026-12-31T23:59:59Z",
+                "timeZone": "UTC",
+                "schedule": {
+                    "hours": [22],
+                    "minutes": [0]
+                }
+            }
+        },
+        "pipelines": [
+            {
+                "pipelineReference": {
+                    "referenceName": "pl_daily_sales_etl",
+                    "type": "PipelineReference"
+                },
+                "parameters": {
+                    "pProcessDate": "@formatDateTime(utcNow(), 'yyyy-MM-dd')",
+                    "pSourceSystem": "SAP"
+                }
+            }
+        ]
+    }
+}
+```
+
+### 41.4 Recurrence Patterns
+
+## Pattern 1: Simple Daily
+**Use Case**: Run every day at 6 AM
+
+```json
+{
+    "recurrence": {
+        "frequency": "Day",
+        "interval": 1,
+        "startTime": "2026-01-01T06:00:00Z",
+        "timeZone": "UTC"
+    }
+}
+```
+
+## Pattern 2: Every X Hours
+**Use Case**: Run every 4 hours
+
+```json
+{
+    "recurrence": {
+        "frequency": "Hour",
+        "interval": 4,
+        "startTime": "2026-01-01T00:00:00Z",
+        "timeZone": "UTC"
+    }
+}
+```
+
+## Pattern 3: Specific Weekdays
+**Use Case**: Run Monday through Friday at 8 AM
+
+```json
+{
+    "recurrence": {
+        "frequency": "Week",
+        "interval": 1,
+        "startTime": "2026-01-01T08:00:00Z",
+        "timeZone": "UTC",
+        "schedule": {
+            "weekDays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+            "hours": [8],
+            "minutes": [0]
+        }
+    }
+}
+```
+
+## Pattern 4: Multiple Times Per Day
+**Use Case**: Run at 6 AM, 12 PM, and 6 PM daily
+
+```json
+{
+    "recurrence": {
+        "frequency": "Day",
+        "interval": 1,
+        "startTime": "2026-01-01T00:00:00Z",
+        "timeZone": "UTC",
+        "schedule": {
+            "hours": [6, 12, 18],
+            "minutes": [0]
+        }
+    }
+}
+```
+
+## Pattern 5: Month-End Processing
+**Use Case**: Run on the last day of every month at 11 PM
+
+```json
+{
+    "recurrence": {
+        "frequency": "Month",
+        "interval": 1,
+        "startTime": "2026-01-01T23:00:00Z",
+        "timeZone": "UTC",
+        "schedule": {
+            "monthDays": [-1],
+            "hours": [23],
+            "minutes": [0]
+        }
+    }
+}
+```
+
+## Pattern 6: Specific Day of Month
+**Use Case**: Run on 1st and 15th of each month at 9 AM
+
+```json
+{
+    "recurrence": {
+        "frequency": "Month",
+        "interval": 1,
+        "startTime": "2026-01-01T09:00:00Z",
+        "timeZone": "UTC",
+        "schedule": {
+            "monthDays": [1, 15],
+            "hours": [9],
+            "minutes": [0]
+        }
+    }
+}
+```
+
+## Pattern 7: First Monday of Month
+**Use Case**: Run on first Monday of each month
+
+```json
+{
+    "recurrence": {
+        "frequency": "Month",
+        "interval": 1,
+        "startTime": "2026-01-01T10:00:00Z",
+        "timeZone": "UTC",
+        "schedule": {
+            "monthlyOccurrences": [
+                {
+                    "day": "Monday",
+                    "occurrence": 1
+                }
+            ],
+            "hours": [10],
+            "minutes": [0]
+        }
+    }
+}
+```
+
+## Pattern 8: Last Sunday of Month
+**Use Case**: Run on last Sunday of each month
+
+```json
+{
+    "recurrence": {
+        "frequency": "Month",
+        "interval": 1,
+        "startTime": "2026-01-01T20:00:00Z",
+        "timeZone": "UTC",
+        "schedule": {
+            "monthlyOccurrences": [
+                {
+                    "day": "Sunday",
+                    "occurrence": -1
+                }
+            ],
+            "hours": [20],
+            "minutes": [0]
+        }
+    }
+}
+```
+
+### 41.5 Schedule Elements Explained
+
+| Element | Description | Valid Values | Example |
+|---------|-------------|--------------|---------|
+| **frequency** | Base unit of recurrence | Minute, Hour, Day, Week, Month | "Day" |
+| **interval** | How often frequency repeats | Integer (1-1000) | 1 (every day), 2 (every 2 days) |
+| **startTime** | When trigger begins | ISO 8601 DateTime | "2026-01-01T00:00:00Z" |
+| **endTime** | When trigger stops (optional) | ISO 8601 DateTime | "2026-12-31T23:59:59Z" |
+| **timeZone** | Time zone for schedule | Standard time zone ID | "UTC", "Eastern Standard Time" |
+| **hours** | Hours of day to run | Array [0-23] | [6, 12, 18] |
+| **minutes** | Minutes of hour to run | Array [0-59] | [0, 30] |
+| **weekDays** | Days of week (for weekly) | Monday-Sunday | ["Monday", "Friday"] |
+| **monthDays** | Days of month | 1-31, -1 to -31 (from end) | [1, 15, -1] |
+| **monthlyOccurrences** | Nth occurrence of weekday | day + occurrence | First Monday, Last Friday |
+
+### 41.6 Passing Parameters to Pipeline
+
+**Scenario**: Pass current date and environment to pipeline
+
+```json
+{
+    "name": "tr_parameterized_schedule",
+    "properties": {
+        "type": "ScheduleTrigger",
+        "typeProperties": {
+            "recurrence": {
+                "frequency": "Day",
+                "interval": 1,
+                "startTime": "2026-01-01T07:00:00Z",
+                "timeZone": "UTC"
+            }
+        },
+        "pipelines": [
+            {
+                "pipelineReference": {
+                    "referenceName": "pl_data_processing",
+                    "type": "PipelineReference"
+                },
+                "parameters": {
+                    "pProcessDate": "@formatDateTime(trigger().scheduledTime, 'yyyy-MM-dd')",
+                    "pEnvironment": "PROD",
+                    "pBatchID": "@trigger().startTime",
+                    "pRunID": "@pipeline().RunId"
+                }
+            }
+        ]
+    }
+}
+```
+
+**Available Trigger Functions:**
+- `@trigger().scheduledTime`: Scheduled time for this run
+- `@trigger().startTime`: Actual start time of trigger
+- `@trigger().name`: Name of the trigger
+- `@trigger().outputs`: Trigger-specific outputs
+
+### 41.7 Time Zone Handling
+
+**Common Time Zones:**
+```json
+// UTC
+"timeZone": "UTC"
+
+// US Time Zones
+"timeZone": "Eastern Standard Time"  // EST/EDT
+"timeZone": "Central Standard Time"  // CST/CDT
+"timeZone": "Pacific Standard Time"  // PST/PDT
+
+// Other Common
+"timeZone": "GMT Standard Time"      // London
+"timeZone": "India Standard Time"    // IST
+"timeZone": "China Standard Time"    // CST
+```
+
+**Daylight Saving Considerations:**
+- ADF automatically handles DST transitions
+- Use region-specific time zones (not abbreviations like EST/PST)
+- For DST-neutral, use UTC
+
+### 41.8 Managing Triggers
+
+## Activate/Deactivate Trigger
+```powershell
+# Start trigger
+Start-AzDataFactoryV2Trigger -ResourceGroupName "rg-adf-prod" `
+    -DataFactoryName "adf-prod-001" `
+    -Name "tr_daily_sales_processing"
+
+# Stop trigger
+Stop-AzDataFactoryV2Trigger -ResourceGroupName "rg-adf-prod" `
+    -DataFactoryName "adf-prod-001" `
+    -Name "tr_daily_sales_processing"
+```
+
+## Monitor Trigger Runs
+```powershell
+# Get trigger runs
+Get-AzDataFactoryV2TriggerRun -ResourceGroupName "rg-adf-prod" `
+    -DataFactoryName "adf-prod-001" `
+    -TriggerName "tr_daily_sales_processing" `
+    -TriggerRunStartedAfter "2026-04-01" `
+    -TriggerRunStartedBefore "2026-04-26"
+```
+
+## Using UI:
+1. Go to **Monitor** tab
+2. Select **Trigger runs**
+3. Filter by trigger name, status, time range
+4. View associated pipeline runs
+
+### 41.9 Use Cases and Examples
+
+## Use Case 1: Daily Sales ETL
+
+**Requirement**: Extract sales data every night at 11 PM, transform, and load into data warehouse.
+
+```json
+{
+    "name": "tr_nightly_sales_etl",
+    "properties": {
+        "type": "ScheduleTrigger",
+        "typeProperties": {
+            "recurrence": {
+                "frequency": "Day",
+                "interval": 1,
+                "startTime": "2026-01-01T23:00:00Z",
+                "timeZone": "Eastern Standard Time",
+                "schedule": {
+                    "hours": [23],
+                    "minutes": [0]
+                }
+            }
+        },
+        "pipelines": [
+            {
+                "pipelineReference": {
+                    "referenceName": "pl_sales_etl",
+                    "type": "PipelineReference"
+                },
+                "parameters": {
+                    "pLoadDate": "@formatDateTime(trigger().scheduledTime, 'yyyy-MM-dd')",
+                    "pLoadType": "INCREMENTAL"
+                }
+            }
+        ]
+    }
+}
+```
+
+## Use Case 2: Hourly Data Refresh
+
+**Requirement**: Refresh dashboard data every hour between 8 AM and 8 PM on weekdays.
+
+```json
+{
+    "name": "tr_hourly_dashboard_refresh",
+    "properties": {
+        "type": "ScheduleTrigger",
+        "typeProperties": {
+            "recurrence": {
+                "frequency": "Hour",
+                "interval": 1,
+                "startTime": "2026-01-01T08:00:00Z",
+                "timeZone": "UTC",
+                "schedule": {
+                    "weekDays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+                    "hours": [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+                }
+            }
+        },
+        "pipelines": [
+            {
+                "pipelineReference": {
+                    "referenceName": "pl_dashboard_refresh",
+                    "type": "PipelineReference"
+                }
+            }
+        ]
+    }
+}
+```
+
+## Use Case 3: Monthly Reporting
+
+**Requirement**: Generate monthly reports on the first day of each month at 6 AM.
+
+```json
+{
+    "name": "tr_monthly_reports",
+    "properties": {
+        "type": "ScheduleTrigger",
+        "typeProperties": {
+            "recurrence": {
+                "frequency": "Month",
+                "interval": 1,
+                "startTime": "2026-01-01T06:00:00Z",
+                "timeZone": "UTC",
+                "schedule": {
+                    "monthDays": [1],
+                    "hours": [6],
+                    "minutes": [0]
+                }
+            }
+        },
+        "pipelines": [
+            {
+                "pipelineReference": {
+                    "referenceName": "pl_monthly_report_generation",
+                    "type": "PipelineReference"
+                },
+                "parameters": {
+                    "pReportMonth": "@formatDateTime(addDays(trigger().scheduledTime, -1), 'yyyy-MM')"
+                }
+            }
+        ]
+    }
+}
+```
+
+## Use Case 4: Orchestrating Multiple Pipelines
+
+**Requirement**: Run data quality checks, then ETL, then reporting in sequence daily.
+
+**Solution**: Use separate schedule triggers with time offsets
+
+```json
+// Trigger 1: Data Quality (1 AM)
+{
+    "name": "tr_data_quality_checks",
+    "properties": {
+        "typeProperties": {
+            "recurrence": {
+                "frequency": "Day",
+                "interval": 1,
+                "schedule": {"hours": [1], "minutes": [0]}
+            }
+        },
+        "pipelines": [{"pipelineReference": {"referenceName": "pl_data_quality"}}]
+    }
+}
+
+// Trigger 2: ETL (2 AM - after quality checks)
+{
+    "name": "tr_etl_processing",
+    "properties": {
+        "typeProperties": {
+            "recurrence": {
+                "frequency": "Day",
+                "interval": 1,
+                "schedule": {"hours": [2], "minutes": [0]}
+            }
+        },
+        "pipelines": [{"pipelineReference": {"referenceName": "pl_etl_main"}}]
+    }
+}
+
+// Trigger 3: Reporting (4 AM - after ETL)
+{
+    "name": "tr_report_generation",
+    "properties": {
+        "typeProperties": {
+            "recurrence": {
+                "frequency": "Day",
+                "interval": 1,
+                "schedule": {"hours": [4], "minutes": [0]}
+            }
+        },
+        "pipelines": [{"pipelineReference": {"referenceName": "pl_reports"}}]
+    }
+}
+```
+
+**Note**: For dependency-based orchestration, consider using parent pipeline with Execute Pipeline activities or Tumbling Window Triggers with dependencies.
+
+### 41.10 Best Practices
+
+1. **Use Descriptive Names**
+   - Prefix: `tr_` for triggers
+   - Include frequency: `tr_daily_`, `tr_hourly_`
+   - Include purpose: `tr_daily_sales_etl`
+
+2. **Set Appropriate Time Zones**
+   - Use UTC for global systems
+   - Use local time zones for regional pipelines
+   - Document time zone choices
+
+3. **Plan for Overlapping Runs**
+   - Ensure pipeline completes before next trigger
+   - Use concurrency controls if needed
+   - Monitor execution durations
+
+4. **Include End Date for Temporary Schedules**
+   - Set `endTime` for limited-duration triggers
+   - Prevents accidental continued execution
+   - Useful for migrations, data backfills
+
+5. **Pass Meaningful Parameters**
+   - Use `@trigger().scheduledTime` for processing date
+   - Include environment indicators
+   - Pass batch identifiers for tracking
+
+6. **Document Recurrence Patterns**
+   - Complex schedules need clear documentation
+   - Include business rationale
+   - Note any exceptions or special handling
+
+7. **Test Before Publishing**
+   - Use Debug mode to test pipeline
+   - Verify parameter passing
+   - Check time zone calculations
+
+8. **Monitor Trigger Health**
+   - Set up alerts for failed triggers
+   - Review trigger run history regularly
+   - Track missed executions
+
+9. **Avoid Over-Scheduling**
+   - Don't schedule too frequently if not needed
+   - Consider cost implications
+   - Batch operations when possible
+
+10. **Version Control**
+    - Use Git integration for triggers
+    - Track changes to schedules
+    - Document schedule changes in commits
+
+### 41.11 Troubleshooting
+
+## Issue 1: Trigger Not Firing
+
+**Symptoms**: Trigger is active but pipeline doesn't run
+
+**Checks:**
+1. Verify trigger is **Started** (not just published)
+2. Check time zone configuration
+3. Confirm current time falls within startTime and endTime
+4. Review recurrence pattern matches expectation
+5. Check ADF service health
+
+**Solution:**
+```powershell
+# Check trigger status
+Get-AzDataFactoryV2Trigger -ResourceGroupName "rg-adf" `
+    -DataFactoryName "adf-prod" `
+    -Name "tr_daily_sales"
+
+# Start if stopped
+Start-AzDataFactoryV2Trigger -ResourceGroupName "rg-adf" `
+    -DataFactoryName "adf-prod" `
+    -Name "tr_daily_sales"
+```
+
+## Issue 2: Unexpected Execution Times
+
+**Symptoms**: Pipeline runs at wrong times
+
+**Root Causes:**
+- Incorrect time zone setting
+- Daylight Saving Time transition
+- Misunderstanding of recurrence pattern
+
+**Solution:**
+- Verify `timeZone` property
+- Use UTC to avoid DST issues
+- Test pattern with Debug mode
+
+## Issue 3: Parameters Not Passed Correctly
+
+**Symptoms**: Pipeline receives null or incorrect parameter values
+
+**Common Mistakes:**
+```javascript
+// Wrong - missing @ symbol
+"pDate": "trigger().scheduledTime"
+
+// Wrong - incorrect function
+"pDate": "@trigger().startDate"
+
+// Correct
+"pDate": "@formatDateTime(trigger().scheduledTime, 'yyyy-MM-dd')"
+```
+
+## Issue 4: Trigger Runs Too Frequently
+
+**Symptoms**: More pipeline runs than expected
+
+**Checks:**
+- Review `interval` value (interval of 2 with Minute frequency = every 2 minutes)
+- Check if multiple triggers point to same pipeline
+- Verify `schedule` array values
+
+## Issue 5: Missing Scheduled Runs
+
+**Symptoms**: Some expected runs didn't execute
+
+**Possible Reasons:**
+- ADF service interruption
+- Trigger was paused during expected time
+- End date passed
+- Maximum concurrent runs reached
+
+**Investigation:**
+```powershell
+# Check trigger runs for gaps
+Get-AzDataFactoryV2TriggerRun -ResourceGroupName "rg-adf" `
+    -DataFactoryName "adf-prod" `
+    -TriggerName "tr_daily_sales" `
+    -TriggerRunStartedAfter "2026-04-01" `
+    -TriggerRunStartedBefore "2026-04-26" | 
+    Format-Table TriggerRunTimestamp, Status
+```
+
+### 41.12 Schedule vs. Tumbling Window Trigger
+
+| Aspect | Schedule Trigger | Tumbling Window Trigger |
+|--------|------------------|-------------------------|
+| **State** | Stateless | Stateful |
+| **Backfill** | Not supported | Supported |
+| **Reliability** | Less reliable | 100% reliable (no gaps) |
+| **Retry** | Not supported | Supported with retry policy |
+| **Concurrency** | Not controlled | Explicit concurrency limits |
+| **Dependencies** | Not supported | Supports trigger dependencies |
+| **Pipeline Relationship** | Many-to-many | One-to-one |
+| **Wait for Completion** | No (fire-and-forget) | Yes (monitors completion) |
+| **Best For** | Simple schedules, multiple pipelines | Complex scheduling, data consistency |
+
+### 41.13 Interview Questions on Schedule Trigger
+
+1. **What is a Schedule Trigger in ADF?**
+   - A trigger that invokes pipelines based on wall-clock calendar schedule, supporting periodic and advanced recurrence patterns.
+
+2. **What's the difference between Schedule Trigger and Tumbling Window Trigger?**
+   - Schedule is stateless and fire-and-forget; Tumbling Window is stateful, waits for completion, supports backfill and retry.
+
+3. **How do you run a pipeline every weekday at 9 AM?**
+   - Use Schedule Trigger with frequency "Week", schedule.weekDays array of Monday-Friday, schedule.hours [9], minutes [0].
+
+4. **Can a Schedule Trigger pass parameters to a pipeline?**
+   - Yes, using the parameters section in pipeline reference with expressions like `@trigger().scheduledTime`.
+
+5. **What trigger system variables are available?**
+   - `@trigger().scheduledTime`, `@trigger().startTime`, `@trigger().name`, `@trigger().outputs`.
+
+6. **How do you handle time zones in Schedule Trigger?**
+   - Use the `timeZone` property with standard time zone names (e.g., "UTC", "Eastern Standard Time").
+
+7. **Can one trigger start multiple pipelines?**
+   - Yes, Schedule Trigger supports many-to-many relationships - one trigger can start multiple pipelines, or multiple triggers can start one pipeline.
+
+8. **How do you schedule a pipeline to run on the last day of each month?**
+   - Use frequency "Month", monthDays [-1] (negative values count from end of month).
+
+9. **What's the difference between interval 1 with Day frequency vs. interval 24 with Hour frequency?**
+   - Day interval respects calendar days; Hour interval is exactly 24-hour periods and doesn't align with calendar boundaries.
+
+10. **How do you pause a Schedule Trigger?**
+    - Stop the trigger using UI (Stop button) or PowerShell/CLI (`Stop-AzDataFactoryV2Trigger` command).
+
+### 41.14 Real-World Case Study
+
+**Scenario**: Global Retail Chain Daily Sales Analytics
+
+**Business Requirement:**
+- Extract sales data from 1000+ stores across 5 time zones
+- Process data nightly after all stores close
+- Generate reports by 6 AM local time for each region
+- Handle different closing times per region
+
+**Solution Architecture:**
+
+```json
+// North America Trigger (stores close at 11 PM EST)
+{
+    "name": "tr_na_sales_processing",
+    "properties": {
+        "type": "ScheduleTrigger",
+        "typeProperties": {
+            "recurrence": {
+                "frequency": "Day",
+                "interval": 1,
+                "startTime": "2026-01-01T23:30:00Z",
+                "timeZone": "Eastern Standard Time",
+                "schedule": {
+                    "hours": [23],
+                    "minutes": [30]
+                }
+            }
+        },
+        "pipelines": [
+            {
+                "pipelineReference": {
+                    "referenceName": "pl_regional_sales_etl",
+                    "type": "PipelineReference"
+                },
+                "parameters": {
+                    "pRegion": "NA",
+                    "pProcessDate": "@formatDateTime(trigger().scheduledTime, 'yyyy-MM-dd')",
+                    "pTargetCompleteTime": "06:00"
+                }
+            }
+        ]
+    }
+}
+
+// Europe Trigger (stores close at 10 PM GMT)
+{
+    "name": "tr_eu_sales_processing",
+    "properties": {
+        "type": "ScheduleTrigger",
+        "typeProperties": {
+            "recurrence": {
+                "frequency": "Day",
+                "interval": 1,
+                "startTime": "2026-01-01T22:30:00Z",
+                "timeZone": "GMT Standard Time",
+                "schedule": {
+                    "hours": [22],
+                    "minutes": [30]
+                }
+            }
+        },
+        "pipelines": [
+            {
+                "pipelineReference": {
+                    "referenceName": "pl_regional_sales_etl",
+                    "type": "PipelineReference"
+                },
+                "parameters": {
+                    "pRegion": "EU",
+                    "pProcessDate": "@formatDateTime(trigger().scheduledTime, 'yyyy-MM-dd')",
+                    "pTargetCompleteTime": "06:00"
+                }
+            }
+        ]
+    }
+}
+
+// APAC Trigger (stores close at 11 PM JST)
+{
+    "name": "tr_apac_sales_processing",
+    "properties": {
+        "type": "ScheduleTrigger",
+        "typeProperties": {
+            "recurrence": {
+                "frequency": "Day",
+                "interval": 1,
+                "startTime": "2026-01-01T23:30:00Z",
+                "timeZone": "Tokyo Standard Time",
+                "schedule": {
+                    "hours": [23],
+                    "minutes": [30]
+                }
+            }
+        },
+        "pipelines": [
+            {
+                "pipelineReference": {
+                    "referenceName": "pl_regional_sales_etl",
+                    "type": "PipelineReference"
+                },
+                "parameters": {
+                    "pRegion": "APAC",
+                    "pProcessDate": "@formatDateTime(trigger().scheduledTime, 'yyyy-MM-dd')",
+                    "pTargetCompleteTime": "06:00"
+                }
+            }
+        ]
+    }
+}
+
+// Global Consolidation Trigger (runs after all regions complete)
+{
+    "name": "tr_global_consolidation",
+    "properties": {
+        "type": "ScheduleTrigger",
+        "typeProperties": {
+            "recurrence": {
+                "frequency": "Day",
+                "interval": 1,
+                "startTime": "2026-01-01T12:00:00Z",
+                "timeZone": "UTC",
+                "schedule": {
+                    "hours": [12],
+                    "minutes": [0]
+                }
+            }
+        },
+        "pipelines": [
+            {
+                "pipelineReference": {
+                    "referenceName": "pl_global_sales_consolidation",
+                    "type": "PipelineReference"
+                },
+                "parameters": {
+                    "pProcessDate": "@formatDateTime(trigger().scheduledTime, 'yyyy-MM-dd')",
+                    "pRegions": ["NA", "EU", "APAC"]
+                }
+            }
+        ]
+    }
+}
+```
+
+**Benefits:**
+- Region-specific processing times
+- Time zone awareness for accurate reporting
+- Parallel regional processing
+- Global consolidation after all regions complete
+- Parameterized pipelines for code reuse
+
+### 41.15 Quick Reference Summary
+
+**Schedule Trigger Essentials:**
+- **Purpose**: Time-based automated pipeline execution
+- **Pattern Types**: Minute, Hour, Day, Week, Month
+- **Key Properties**: frequency, interval, schedule, timeZone
+- **Behavior**: Fire-and-forget (doesn't wait for completion)
+- **Relationship**: Many-to-many with pipelines
+
+**Common Patterns:**
+```javascript
+// Daily at specific time
+"frequency": "Day", "interval": 1, "schedule": {"hours": [6]}
+
+// Every X hours
+"frequency": "Hour", "interval": 4
+
+// Weekdays only
+"frequency": "Week", "weekDays": ["Monday"..."Friday"]
+
+// Month-end
+"frequency": "Month", "monthDays": [-1]
+
+// Nth weekday of month
+"monthlyOccurrences": [{"day": "Monday", "occurrence": 1}]
+```
+
+**Key Functions:**
+- `@trigger().scheduledTime`: Scheduled execution time
+- `@trigger().startTime`: Actual start time
+- `@formatDateTime(trigger().scheduledTime, 'yyyy-MM-dd')`: Format date for parameters
+
+**Remember:**
+- Always start trigger after publishing
+- Use appropriate time zone
+- Test recurrence patterns before production
+- Monitor for missed runs
+- Consider Tumbling Window for critical workloads
+
+---
+
+## 42. Set Variables Activity in Azure Data Factory - Complete Guide
+
+### 42.1 What is Set Variables Activity?
+
+## Definition:
+**Set Variables Activity** is a control flow activity in ADF that sets the value of an existing variable defined within a pipeline. It's used to store and update intermediate values during pipeline execution.
+
+Think of it as: **Assigning values to variables in programming - dynamic state management in pipelines.**
+
+## Purpose:
+- Store intermediate computation results
+- Maintain counters for loops
+- Build dynamic values for later activities
+- Implement conditional logic
+- Track processing state
+- Construct dynamic queries or paths
+
+## Key Characteristics:
+- **Mutable**: Can change variable value during execution
+- **Scope**: Limited to pipeline run
+- **Sequential**: Must define variable before using Set Variables
+- **Type-safe**: Must match defined variable type
+- **No return**: Doesn't produce output like other activities
+
+### 42.2 Set Variables vs Other Concepts
+
+| Aspect | Set Variables | Append Variables | Parameters |
+|--------|---------------|------------------|------------|
+| **Mutability** | Overwrites value | Adds to array | Immutable (read-only) |
+| **Scope** | Pipeline run | Pipeline run | Pipeline run |
+| **Use Case** | Update single value | Build lists/arrays | Pass inputs to pipeline |
+| **Type** | String, Int, Bool, Array, Object (all match variable type) | Array only | All types |
+| **Definition** | Pipeline Variables tab | Pipeline Variables tab | Pipeline Parameters tab |
+| **Access** | `@variables('vName')` | `@variables('vArrayName')` | `@pipeline().parameters.pName` |
+
+### 42.3 Creating and Using Set Variables
+
+## Step 1: Define Variable
+
+**In Pipeline (Variables Tab):**
+1. Go to pipeline canvas
+2. Click empty area to select pipeline
+3. Go to **Variables** tab in properties
+4. Click "+ New"
+5. Define:
+   - **Name**: Variable name (prefix with 'v', e.g., `vCounter`)
+   - **Type**: String, Bool, Array
+   - **Default Value**: Optional initial value
+
+**JSON Example:**
+```json
+{
+    "name": "pl_example_variables",
+    "properties": {
+        "variables": {
+            "vCounter": {
+                "type": "Integer",
+                "defaultValue": 0
+            },
+            "vTableName": {
+                "type": "String",
+                "defaultValue": ""
+            },
+            "vIsValid": {
+                "type": "Bool",
+                "defaultValue": false
+            },
+            "vProcessedTables": {
+                "type": "Array",
+                "defaultValue": []
+            }
+        },
+        "activities": []
+    }
+}
+```
+
+## Step 2: Use Set Variables Activity
+
+**In UI:**
+1. Drag "Set Variable" activity from Activities pane (under General)
+2. Configure:
+   - **Name**: Descriptive activity name
+   - **Variable name**: Select from dropdown
+   - **Value**: Expression or static value
+3. Connect to other activities
+
+**JSON Example:**
+```json
+{
+    "name": "Set_Counter",
+    "type": "SetVariable",
+    "typeProperties": {
+        "variableName": "vCounter",
+        "value": {
+            "value": "@add(variables('vCounter'), 1)",
+            "type": "Expression"
+        }
+    }
+}
+```
+
+### 42.4 Common Use Cases and Patterns
+
+## Use Case 1: Counter in Loop
+
+**Scenario**: Track how many tables were successfully processed
+
+```json
+{
+    "name": "pl_process_tables_with_counter",
+    "properties": {
+        "variables": {
+            "vSuccessCount": {
+                "type": "Integer",
+                "defaultValue": 0
+            },
+            "vFailureCount": {
+                "type": "Integer",
+                "defaultValue": 0
+            }
+        },
+        "activities": [
+            {
+                "name": "ForEach_Table",
+                "type": "ForEach",
+                "typeProperties": {
+                    "items": {
+                        "value": "@pipeline().parameters.pTableList",
+                        "type": "Expression"
+                    },
+                    "activities": [
+                        {
+                            "name": "Copy_Table",
+                            "type": "Copy",
+                            "typeProperties": {}
+                        },
+                        {
+                            "name": "Increment_Success_Counter",
+                            "type": "SetVariable",
+                            "dependsOn": [
+                                {
+                                    "activity": "Copy_Table",
+                                    "dependencyConditions": ["Succeeded"]
+                                }
+                            ],
+                            "typeProperties": {
+                                "variableName": "vSuccessCount",
+                                "value": {
+                                    "value": "@add(variables('vSuccessCount'), 1)",
+                                    "type": "Expression"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Increment_Failure_Counter",
+                            "type": "SetVariable",
+                            "dependsOn": [
+                                {
+                                    "activity": "Copy_Table",
+                                    "dependencyConditions": ["Failed"]
+                                }
+                            ],
+                            "typeProperties": {
+                                "variableName": "vFailureCount",
+                                "value": {
+                                    "value": "@add(variables('vFailureCount'), 1)",
+                                    "type": "Expression"
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+}
+```
+
+## Use Case 2: Building Dynamic Paths
+
+**Scenario**: Construct output path based on processing date
+
+```json
+{
+    "name": "pl_dynamic_path_construction",
+    "properties": {
+        "variables": {
+            "vOutputPath": {
+                "type": "String",
+                "defaultValue": ""
+            }
+        },
+        "activities": [
+            {
+                "name": "Set_Output_Path",
+                "type": "SetVariable",
+                "typeProperties": {
+                    "variableName": "vOutputPath",
+                    "value": {
+                        "value": "@concat('bronze/sales/year=', formatDateTime(utcNow(), 'yyyy'), '/month=', formatDateTime(utcNow(), 'MM'), '/day=', formatDateTime(utcNow(), 'dd'))",
+                        "type": "Expression"
+                    }
+                }
+            },
+            {
+                "name": "Copy_To_Dynamic_Path",
+                "type": "Copy",
+                "dependsOn": [
+                    {
+                        "activity": "Set_Output_Path",
+                        "dependencyConditions": ["Succeeded"]
+                    }
+                ],
+                "typeProperties": {
+                    "source": {},
+                    "sink": {
+                        "type": "DelimitedTextSink",
+                        "storeSettings": {
+                            "type": "AzureBlobFSWriteSettings",
+                            "folderPath": {
+                                "value": "@variables('vOutputPath')",
+                                "type": "Expression"
+                            }
+                        }
+                    }
+                }
+            }
+        ]
+    }
+}
+```
+
+## Use Case 3: Conditional Logic with Variables
+
+**Scenario**: Set flag based on validation, use in subsequent activities
+
+```json
+{
+    "name": "pl_validation_with_flag",
+    "properties": {
+        "variables": {
+            "vIsDataValid": {
+                "type": "Bool",
+                "defaultValue": false
+            },
+            "vValidationMessage": {
+                "type": "String",
+                "defaultValue": ""
+            }
+        },
+        "activities": [
+            {
+                "name": "Lookup_RowCount",
+                "type": "Lookup",
+                "typeProperties": {
+                    "source": {
+                        "type": "AzureSqlSource",
+                        "sqlReaderQuery": "SELECT COUNT(*) as row_count FROM staging.orders"
+                    }
+                }
+            },
+            {
+                "name": "Set_Validation_Flag",
+                "type": "SetVariable",
+                "dependsOn": [
+                    {
+                        "activity": "Lookup_RowCount",
+                        "dependencyConditions": ["Succeeded"]
+                    }
+                ],
+                "typeProperties": {
+                    "variableName": "vIsDataValid",
+                    "value": {
+                        "value": "@greater(activity('Lookup_RowCount').output.firstRow.row_count, 0)",
+                        "type": "Expression"
+                    }
+                }
+            },
+            {
+                "name": "Set_Validation_Message",
+                "type": "SetVariable",
+                "dependsOn": [
+                    {
+                        "activity": "Set_Validation_Flag",
+                        "dependencyConditions": ["Succeeded"]
+                    }
+                ],
+                "typeProperties": {
+                    "variableName": "vValidationMessage",
+                    "value": {
+                        "value": "@if(variables('vIsDataValid'), 'Data validation passed', 'No data found in staging table')",
+                        "type": "Expression"
+                    }
+                }
+            },
+            {
+                "name": "If_Data_Valid",
+                "type": "IfCondition",
+                "dependsOn": [
+                    {
+                        "activity": "Set_Validation_Flag",
+                        "dependencyConditions": ["Succeeded"]
+                    }
+                ],
+                "typeProperties": {
+                    "expression": {
+                        "value": "@variables('vIsDataValid')",
+                        "type": "Expression"
+                    },
+                    "ifTrueActivities": [
+                        {
+                            "name": "Proceed_With_ETL",
+                            "type": "Copy",
+                            "typeProperties": {}
+                        }
+                    ],
+                    "ifFalseActivities": [
+                        {
+                            "name": "Send_Alert",
+                            "type": "WebActivity",
+                            "typeProperties": {}
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+}
+```
+
+## Use Case 4: Building Dynamic Query
+
+**Scenario**: Construct WHERE clause based on parameters
+
+```json
+{
+    "name": "pl_dynamic_query",
+    "properties": {
+        "parameters": {
+            "pStartDate": {
+                "type": "string"
+            },
+            "pEndDate": {
+                "type": "string"
+            },
+            "pCustomerType": {
+                "type": "string"
+            }
+        },
+        "variables": {
+            "vWhereClause": {
+                "type": "String",
+                "defaultValue": ""
+            },
+            "vFullQuery": {
+                "type": "String",
+                "defaultValue": ""
+            }
+        },
+        "activities": [
+            {
+                "name": "Build_Where_Clause",
+                "type": "SetVariable",
+                "typeProperties": {
+                    "variableName": "vWhereClause",
+                    "value": {
+                        "value": "@concat('WHERE order_date >= ''', pipeline().parameters.pStartDate, ''' AND order_date < ''', pipeline().parameters.pEndDate, ''' AND customer_type = ''', pipeline().parameters.pCustomerType, '''')",
+                        "type": "Expression"
+                    }
+                }
+            },
+            {
+                "name": "Build_Full_Query",
+                "type": "SetVariable",
+                "dependsOn": [
+                    {
+                        "activity": "Build_Where_Clause",
+                        "dependencyConditions": ["Succeeded"]
+                    }
+                ],
+                "typeProperties": {
+                    "variableName": "vFullQuery",
+                    "value": {
+                        "value": "@concat('SELECT * FROM orders ', variables('vWhereClause'))",
+                        "type": "Expression"
+                    }
+                }
+            },
+            {
+                "name": "Execute_Dynamic_Query",
+                "type": "Copy",
+                "dependsOn": [
+                    {
+                        "activity": "Build_Full_Query",
+                        "dependencyConditions": ["Succeeded"]
+                    }
+                ],
+                "typeProperties": {
+                    "source": {
+                        "type": "AzureSqlSource",
+                        "sqlReaderQuery": {
+                            "value": "@variables('vFullQuery')",
+                            "type": "Expression"
+                        }
+                    }
+                }
+            }
+        ]
+    }
+}
+```
+
+## Use Case 5: Storing Lookup Results
+
+**Scenario**: Get watermark value, store in variable, use multiple times
+
+```json
+{
+    "name": "pl_watermark_processing",
+    "properties": {
+        "variables": {
+            "vLastWatermark": {
+                "type": "String",
+                "defaultValue": "1900-01-01"
+            },
+            "vCurrentWatermark": {
+                "type": "String",
+                "defaultValue": ""
+            }
+        },
+        "activities": [
+            {
+                "name": "Lookup_Last_Watermark",
+                "type": "Lookup",
+                "typeProperties": {
+                    "source": {
+                        "type": "AzureSqlSource",
+                        "sqlReaderQuery": "SELECT MAX(last_modified_date) as watermark FROM control.watermark WHERE table_name = 'orders'"
+                    }
+                }
+            },
+            {
+                "name": "Set_Last_Watermark",
+                "type": "SetVariable",
+                "dependsOn": [
+                    {
+                        "activity": "Lookup_Last_Watermark",
+                        "dependencyConditions": ["Succeeded"]
+                    }
+                ],
+                "typeProperties": {
+                    "variableName": "vLastWatermark",
+                    "value": {
+                        "value": "@activity('Lookup_Last_Watermark').output.firstRow.watermark",
+                        "type": "Expression"
+                    }
+                }
+            },
+            {
+                "name": "Set_Current_Watermark",
+                "type": "SetVariable",
+                "typeProperties": {
+                    "variableName": "vCurrentWatermark",
+                    "value": {
+                        "value": "@utcNow()",
+                        "type": "Expression"
+                    }
+                }
+            },
+            {
+                "name": "Copy_Incremental_Data",
+                "type": "Copy",
+                "dependsOn": [
+                    {
+                        "activity": "Set_Last_Watermark",
+                        "dependencyConditions": ["Succeeded"]
+                    },
+                    {
+                        "activity": "Set_Current_Watermark",
+                        "dependencyConditions": ["Succeeded"]
+                    }
+                ],
+                "typeProperties": {
+                    "source": {
+                        "type": "AzureSqlSource",
+                        "sqlReaderQuery": {
+                            "value": "@concat('SELECT * FROM orders WHERE last_modified_date > ''', variables('vLastWatermark'), ''' AND last_modified_date <= ''', variables('vCurrentWatermark'), '''')",
+                            "type": "Expression"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "Update_Watermark",
+                "type": "SqlServerStoredProcedure",
+                "dependsOn": [
+                    {
+                        "activity": "Copy_Incremental_Data",
+                        "dependencyConditions": ["Succeeded"]
+                    }
+                ],
+                "typeProperties": {
+                    "storedProcedureName": "control.UpdateWatermark",
+                    "storedProcedureParameters": {
+                        "tableName": {"value": "orders"},
+                        "newWatermark": {
+                            "value": {
+                                "value": "@variables('vCurrentWatermark')",
+                                "type": "Expression"
+                            }
+                        }
+                    }
+                }
+            }
+        ]
+    }
+}
+```
+
+### 42.5 Variable Types and Examples
+
+## String Variable
+```json
+{
+    "variables": {
+        "vFileName": {
+            "type": "String",
+            "defaultValue": ""
+        }
+    },
+    "activities": [
+        {
+            "name": "Set_FileName",
+            "type": "SetVariable",
+            "typeProperties": {
+                "variableName": "vFileName",
+                "value": {
+                    "value": "@concat('sales_', formatDateTime(utcNow(), 'yyyyMMdd'), '.csv')",
+                    "type": "Expression"
+                }
+            }
+        }
+    ]
+}
+```
+
+## Integer Variable
+```json
+{
+    "variables": {
+        "vBatchSize": {
+            "type": "Integer",
+            "defaultValue": 1000
+        }
+    },
+    "activities": [
+        {
+            "name": "Set_Batch_Size",
+            "type": "SetVariable",
+            "typeProperties": {
+                "variableName": "vBatchSize",
+                "value": {
+                    "value": "@if(equals(pipeline().parameters.pEnvironment, 'PROD'), 5000, 1000)",
+                    "type": "Expression"
+                }
+            }
+        }
+    ]
+}
+```
+
+## Boolean Variable
+```json
+{
+    "variables": {
+        "vShouldProcessFullLoad": {
+            "type": "Bool",
+            "defaultValue": false
+        }
+    },
+    "activities": [
+        {
+            "name": "Set_Load_Type_Flag",
+            "type": "SetVariable",
+            "typeProperties": {
+                "variableName": "vShouldProcessFullLoad",
+                "value": {
+                    "value": "@or(equals(dayOfWeek(utcNow()), 1), pipeline().parameters.pForceFullLoad)",
+                    "type": "Expression"
+                }
+            }
+        }
+    ]
+}
+```
+
+## Array Variable (Note: Use Append Variable for arrays)
+```json
+{
+    "variables": {
+        "vProcessedFiles": {
+            "type": "Array",
+            "defaultValue": []
+        }
+    },
+    "activities": [
+        // Use Append Variable activity to add to array
+        {
+            "name": "Append_Processed_File",
+            "type": "AppendVariable",
+            "typeProperties": {
+                "variableName": "vProcessedFiles",
+                "value": {
+                    "value": "@item().name",
+                    "type": "Expression"
+                }
+            }
+        }
+    ]
+}
+```
+
+### 42.6 Best Practices
+
+1. **Use Meaningful Names**
+   - Prefix with 'v' for variables (e.g., `vCounter`, `vFileName`)
+   - Use camelCase or PascalCase
+   - Describe purpose clearly
+
+2. **Initialize with Appropriate Defaults**
+   - Set default values where possible
+   - Use empty string `""` for strings
+   - Use `0` for counters
+   - Use `false` for boolean flags
+
+3. **Minimize Variable Usage**
+   - Use parameters when value comes from outside
+   - Use activity outputs directly when possible
+   - Variables add complexity; use sparingly
+
+4. **Type Safety**
+   - Ensure Set Variables value matches variable type
+   - Use type conversion functions if needed:
+     - `@string()`, `@int()`, `@bool()`
+
+5. **Avoid Overwriting Activity Outputs**
+   - Don't store activity output in variable unnecessarily
+   - Access directly: `@activity('ActivityName').output`
+
+6. **Document Complex Logic**
+   - Add descriptions to activities
+   - Comment complex expressions
+   - Explain business logic for flag variables
+
+7. **Handle Null Values**
+   - Use `@coalesce()` to provide defaults
+   - Check for null before using values
+
+8. **Sequential Processing**
+   - Remember variables are scoped to pipeline run
+   - Use dependencies to ensure correct execution order
+
+9. **Debugging**
+   - Use Set Variable to store intermediate values for inspection
+   - View variable values in Monitor tab during debug
+
+10. **Performance Considerations**
+    - Set Variables is lightweight
+    - No significant performance impact
+    - However, excessive variables reduce readability
+
+### 42.7 Common Expressions with Set Variables
+
+```javascript
+// Concatenation
+@concat(variables('vBasePath'), '/', variables('vFileName'))
+
+// Arithmetic
+@add(variables('vCounter'), 1)
+@sub(variables('vTotal'), variables('vProcessed'))
+@mul(variables('vQuantity'), 100)
+@div(variables('vSum'), variables('vCount'))
+
+// Conditional
+@if(greater(variables('vCounter'), 10), 'High', 'Low')
+
+// Date formatting
+@formatDateTime(utcNow(), 'yyyy-MM-dd')
+@formatDateTime(addDays(utcNow(), -1), 'yyyyMMdd')
+
+// String operations
+@toLower(variables('vTableName'))
+@toUpper(variables('vStatus'))
+@replace(variables('vPath'), '\\', '/')
+@substring(variables('vFileName'), 0, 10)
+
+// Type conversion
+@string(variables('vCounter'))
+@int(variables('vStringNumber'))
+@bool(variables('vStringFlag'))
+
+// Null handling
+@coalesce(variables('vOptionalValue'), 'default')
+
+// Logical operations
+@and(variables('vFlag1'), variables('vFlag2'))
+@or(variables('vCondition1'), variables('vCondition2'))
+@not(variables('vIsDisabled'))
+
+// Array operations (use with Append Variable)
+@length(variables('vList'))
+@contains(variables('vList'), 'item')
+```
+
+### 42.8 Limitations and Workarounds
+
+## Limitation 1: Cannot Set Variable Inside ForEach with Sequential=false
+
+**Issue**: Set Variable fails in parallel ForEach
+
+**Workaround**: Use Append Variable for arrays or set sequential=true
+
+```json
+// Won't work reliably in parallel ForEach
+{
+    "name": "ForEach_Parallel",
+    "type": "ForEach",
+    "typeProperties": {
+        "isSequential": false,
+        "items": "@pipeline().parameters.pItems",
+        "activities": [
+            {
+                "name": "Set_Counter",
+                "type": "SetVariable",
+                "typeProperties": {
+                    "variableName": "vCounter",
+                    "value": "@add(variables('vCounter'), 1)"
+                }
+            }
+        ]
+    }
+}
+
+// Workaround: Use sequential ForEach
+{
+    "name": "ForEach_Sequential",
+    "type": "ForEach",
+    "typeProperties": {
+        "isSequential": true,  // <-- Set to true
+        "items": "@pipeline().parameters.pItems",
+        "activities": [
+            {
+                "name": "Set_Counter",
+                "type": "SetVariable",
+                "typeProperties": {
+                    "variableName": "vCounter",
+                    "value": "@add(variables('vCounter'), 1)"
+                }
+            }
+        ]
+    }
+}
+```
+
+## Limitation 2: Cannot Directly Modify Array Elements
+
+**Issue**: Can't update specific array index
+
+**Workaround**: Rebuild entire array
+
+```javascript
+// Not possible: variables('vList')[0] = 'newValue'
+
+// Workaround: Use Append Variable to add items
+// Or rebuild array with updated value using expressions
+```
+
+## Limitation 3: Variable Scope is Pipeline-Level Only
+
+**Issue**: Can't pass variable to child pipeline
+
+**Workaround**: Use pipeline parameters
+
+```json
+// Parent pipeline
+{
+    "name": "Execute_Child",
+    "type": "ExecutePipeline",
+    "typeProperties": {
+        "pipeline": {
+            "referenceName": "pl_child",
+            "type": "PipelineReference"
+        },
+        "parameters": {
+            "pValue": {
+                "value": "@variables('vMyVariable')",
+                "type": "Expression"
+            }
+        }
+    }
+}
+```
+
+### 42.9 Interview Questions on Set Variables Activity
+
+1. **What is Set Variables Activity in ADF?**
+   - A control flow activity that sets the value of a pipeline variable during execution to store intermediate state or computed values.
+
+2. **What's the difference between Set Variables and Append Variable activities?**
+   - Set Variables overwrites the entire value; Append Variable adds an item to an array variable.
+
+3. **Can you use Set Variables inside a parallel ForEach loop?**
+   - No, it's not reliable. Use sequential ForEach (isSequential: true) or use Append Variable for collecting results.
+
+4. **What's the difference between variables and parameters?**
+   - Parameters are immutable inputs set when pipeline starts; Variables are mutable and can be changed during pipeline execution.
+
+5. **How do you increment a counter variable?**
+   - Use Set Variable with expression: `@add(variables('vCounter'), 1)`
+
+6. **Can you set a variable's value from an activity output?**
+   - Yes, using expression: `@activity('ActivityName').output.propertyName`
+
+7. **What variable types are supported?**
+   - String, Integer, Boolean, and Array.
+
+8. **Can you access variables from a child pipeline?**
+   - No, variables are scoped to their pipeline run. Pass values via parameters instead.
+
+9. **How do you handle null values when setting variables?**
+   - Use `@coalesce(expression, 'defaultValue')` to provide fallback value.
+
+10. **What happens if you don't define a variable before using Set Variables activity?**
+    - Pipeline validation fails. Variable must be defined in pipeline's Variables tab first.
+
+### 42.10 Real-World Case Study
+
+**Scenario**: Incremental Data Load with Error Handling
+
+**Business Requirement:**
+- Load data incrementally from source database
+- Track how many records were processed vs. failed
+- Build dynamic filter based on last successful load
+- Update watermark only if entire process succeeds
+- Send summary email with statistics
+
+**Solution:**
+
+```json
+{
+    "name": "pl_incremental_load_with_tracking",
+    "properties": {
+        "parameters": {
+            "pSourceTable": {"type": "string"},
+            "pSinkContainer": {"type": "string"}
+        },
+        "variables": {
+            "vLastWatermark": {
+                "type": "String",
+                "defaultValue": "1900-01-01T00:00:00Z"
+            },
+            "vCurrentWatermark": {
+                "type": "String",
+                "defaultValue": ""
+            },
+            "vRecordsCopied": {
+                "type": "Integer",
+                "defaultValue": 0
+            },
+            "vRecordsFailed": {
+                "type": "Integer",
+                "defaultValue": 0
+            },
+            "vProcessStatus": {
+                "type": "String",
+                "defaultValue": "NotStarted"
+            },
+            "vErrorMessage": {
+                "type": "String",
+                "defaultValue": ""
+            },
+            "vSQLQuery": {
+                "type": "String",
+                "defaultValue": ""
+            }
+        },
+        "activities": [
+            // Step 1: Get last successful watermark
+            {
+                "name": "Lookup_Last_Watermark",
+                "type": "Lookup",
+                "typeProperties": {
+                    "source": {
+                        "type": "AzureSqlSource",
+                        "sqlReaderQuery": {
+                            "value": "@concat('SELECT ISNULL(MAX(watermark_value), ''1900-01-01'') as last_watermark FROM control.watermark_tracking WHERE table_name = ''', pipeline().parameters.pSourceTable, '''')",
+                            "type": "Expression"
+                        }
+                    }
+                }
+            },
+            
+            // Step 2: Store watermark in variable
+            {
+                "name": "Set_Last_Watermark",
+                "type": "SetVariable",
+                "dependsOn": [
+                    {"activity": "Lookup_Last_Watermark", "dependencyConditions": ["Succeeded"]}
+                ],
+                "typeProperties": {
+                    "variableName": "vLastWatermark",
+                    "value": {
+                        "value": "@activity('Lookup_Last_Watermark').output.firstRow.last_watermark",
+                        "type": "Expression"
+                    }
+                }
+            },
+            
+            // Step 3: Set current watermark (processing time)
+            {
+                "name": "Set_Current_Watermark",
+                "type": "SetVariable",
+                "typeProperties": {
+                    "variableName": "vCurrentWatermark",
+                    "value": {
+                        "value": "@utcNow()",
+                        "type": "Expression"
+                    }
+                }
+            },
+            
+            // Step 4: Build incremental query
+            {
+                "name": "Build_Incremental_Query",
+                "type": "SetVariable",
+                "dependsOn": [
+                    {"activity": "Set_Last_Watermark", "dependencyConditions": ["Succeeded"]},
+                    {"activity": "Set_Current_Watermark", "dependencyConditions": ["Succeeded"]}
+                ],
+                "typeProperties": {
+                    "variableName": "vSQLQuery",
+                    "value": {
+                        "value": "@concat('SELECT * FROM ', pipeline().parameters.pSourceTable, ' WHERE modified_date > ''', variables('vLastWatermark'), ''' AND modified_date <= ''', variables('vCurrentWatermark'), '''')",
+                        "type": "Expression"
+                    }
+                }
+            },
+            
+            // Step 5: Copy incremental data
+            {
+                "name": "Copy_Incremental_Data",
+                "type": "Copy",
+                "dependsOn": [
+                    {"activity": "Build_Incremental_Query", "dependencyConditions": ["Succeeded"]}
+                ],
+                "typeProperties": {
+                    "source": {
+                        "type": "AzureSqlSource",
+                        "sqlReaderQuery": {
+                            "value": "@variables('vSQLQuery')",
+                            "type": "Expression"
+                        }
+                    },
+                    "sink": {
+                        "type": "DelimitedTextSink"
+                    },
+                    "enableStaging": false
+                }
+            },
+            
+            // Step 6a: On Success - Update counters
+            {
+                "name": "Set_Records_Copied",
+                "type": "SetVariable",
+                "dependsOn": [
+                    {"activity": "Copy_Incremental_Data", "dependencyConditions": ["Succeeded"]}
+                ],
+                "typeProperties": {
+                    "variableName": "vRecordsCopied",
+                    "value": {
+                        "value": "@activity('Copy_Incremental_Data').output.rowsCopied",
+                        "type": "Expression"
+                    }
+                }
+            },
+            
+            // Step 6b: On Success - Set status
+            {
+                "name": "Set_Status_Success",
+                "type": "SetVariable",
+                "dependsOn": [
+                    {"activity": "Set_Records_Copied", "dependencyConditions": ["Succeeded"]}
+                ],
+                "typeProperties": {
+                    "variableName": "vProcessStatus",
+                    "value": "Completed Successfully"
+                }
+            },
+            
+            // Step 7a: On Failure - Set error message
+            {
+                "name": "Set_Error_Message",
+                "type": "SetVariable",
+                "dependsOn": [
+                    {"activity": "Copy_Incremental_Data", "dependencyConditions": ["Failed"]}
+                ],
+                "typeProperties": {
+                    "variableName": "vErrorMessage",
+                    "value": {
+                        "value": "@activity('Copy_Incremental_Data').output.errors[0].Message",
+                        "type": "Expression"
+                    }
+                }
+            },
+            
+            // Step 7b: On Failure - Set status
+            {
+                "name": "Set_Status_Failed",
+                "type": "SetVariable",
+                "dependsOn": [
+                    {"activity": "Set_Error_Message", "dependencyConditions": ["Succeeded"]}
+                ],
+                "typeProperties": {
+                    "variableName": "vProcessStatus",
+                    "value": "Failed"
+                }
+            },
+            
+            // Step 8: Update watermark (only on success)
+            {
+                "name": "Update_Watermark",
+                "type": "SqlServerStoredProcedure",
+                "dependsOn": [
+                    {"activity": "Set_Status_Success", "dependencyConditions": ["Succeeded"]}
+                ],
+                "typeProperties": {
+                    "storedProcedureName": "control.usp_UpdateWatermark",
+                    "storedProcedureParameters": {
+                        "table_name": {"value": {"value": "@pipeline().parameters.pSourceTable", "type": "Expression"}},
+                        "watermark_value": {"value": {"value": "@variables('vCurrentWatermark')", "type": "Expression"}},
+                        "records_processed": {"value": {"value": "@variables('vRecordsCopied')", "type": "Expression"}}
+                    }
+                }
+            },
+            
+            // Step 9: Send summary email (runs regardless of success/failure)
+            {
+                "name": "Send_Summary_Email",
+                "type": "WebActivity",
+                "dependsOn": [
+                    {"activity": "Set_Status_Success", "dependencyConditions": ["Succeeded"]},
+                    {"activity": "Set_Status_Failed", "dependencyConditions": ["Succeeded"]}
+                ],
+                "typeProperties": {
+                    "url": "https://prod-XX.eastus.logic.azure.com:443/workflows/XXXXX",
+                    "method": "POST",
+                    "body": {
+                        "value": "@json(concat('{\"pipelineName\": \"', pipeline().Pipeline, '\",\"tableName\": \"', pipeline().parameters.pSourceTable, '\",\"status\": \"', variables('vProcessStatus'), '\",\"recordsCopied\": ', string(variables('vRecordsCopied')), ',\"recordsFailed\": ', string(variables('vRecordsFailed')), ',\"errorMessage\": \"', variables('vErrorMessage'), '\",\"lastWatermark\": \"', variables('vLastWatermark'), '\",\"currentWatermark\": \"', variables('vCurrentWatermark'), '\"}'))",
+                        "type": "Expression"
+                    }
+                }
+            }
+        ]
+    }
+}
+```
+
+**Benefits:**
+- Tracks processing metrics in variables
+- Builds dynamic queries based on watermark
+- Handles success and failure paths differently
+- Updates watermark only on success
+- Sends comprehensive summary with all details
+- Easy to debug by inspecting variable values
+- Reusable pattern for any incremental load
+
+### 42.11 Quick Reference Summary
+
+**Set Variables Essentials:**
+- **Purpose**: Update pipeline variable values during execution
+- **Scope**: Pipeline run
+- **Mutability**: Can change value during execution
+- **Types**: String, Integer, Boolean, Array
+- **Access**: `@variables('vName')`
+
+**Common Patterns:**
+```javascript
+// Increment counter
+@add(variables('vCounter'), 1)
+
+// Build path
+@concat(variables('vBasePath'), '/', formatDateTime(utcNow(), 'yyyyMMdd'))
+
+// Conditional value
+@if(variables('vFlag'), 'value1', 'value2')
+
+// Store activity output
+@activity('ActivityName').output.propertyName
+
+// Null-safe access
+@coalesce(variables('vOptional'), 'default')
+```
+
+**Remember:**
+- Define variable before using Set Variables
+- Variables are pipeline-scoped (not global)
+- Use sequential ForEach for Set Variables inside loops
+- Pass to child pipelines via parameters
+- Use for intermediate values, not as activity output replacement
+
+---
+
+## 43. Delete Activity in Azure Data Factory - Complete Guide
+
+### 43.1 What is Delete Activity?
+
+## Definition:
+**Delete Activity** is a data movement activity in ADF that deletes files or folders from supported data stores. It enables automated cleanup, archival workflows, and data lifecycle management.
+
+Think of it as: **File/folder cleanup automation - rm command for cloud storage.**
+
+## Purpose:
+- Delete old or processed files
+- Clean up staging areas
+- Implement data retention policies
+- Remove temporary data after processing
+- Archive cleanup (delete after moving)
+- Implement GDPR right-to-deletion workflows
+
+## Key Characteristics:
+- **Batch deletion**: Can delete multiple files/folders in one operation
+- **Recursive**: Can delete folder and all contents
+- **Wildcard support**: Pattern-based deletion
+- **Safe**: Validates before deletion
+- **Auditable**: Logs deleted items
+- **Connector support**: Works with most storage connectors
+
+### 43.2 Supported Data Stores
+
+**Fully Supported:**
+- Azure Blob Storage
+- Azure Data Lake Storage Gen1
+- Azure Data Lake Storage Gen2
+- Azure Files
+- File System (Self-hosted IR)
+- FTP/SFTP Server
+- Amazon S3
+- Google Cloud Storage
+- HDFS (Hadoop Distributed File System)
+
+**Note**: Not supported for database tables (use SQL DELETE statements via stored procedure or script activity instead).
+
+### 43.3 Delete Activity Architecture
+
+```mermaid
+flowchart LR
+    A[Delete Activity] --> B{Target Type?}
+    B -->|Single File| C[Delete File]
+    B -->|Folder| D[Delete Folder]
+    B -->|Wildcard| E[Match Pattern]
+    E --> F[Delete Matched Files]
+    C --> G[Confirm Deletion]
+    D --> H[Recursive Delete]
+    F --> G
+    H --> G
+    G --> I[Log Results]
+    
+    style A fill:#FFD700
+    style G fill:#90EE90
+```
+
+### 43.4 Creating Delete Activity
+
+## In UI (Author Tab):
+1. Drag "Delete" activity from Activities pane (under General)
+2. Configure **Settings** tab:
+   - **Dataset**: Select or create dataset pointing to data store
+   - **File path type**: Choose deletion type
+   - **Recursive**: Enable for folder deletion
+   - **Max concurrent connections**: Parallel deletion (optional)
+   - **Enable logging**: Track deleted items (optional)
+   - **Logging settings**: Log location if enabled
+3. Connect dependencies
+4. Test with Debug
+
+## JSON Definition - Delete Single File:
+```json
+{
+    "name": "Delete_Processed_File",
+    "type": "Delete",
+    "typeProperties": {
+        "dataset": {
+            "referenceName": "ds_adls_processed_file",
+            "type": "DatasetReference",
+            "parameters": {
+                "pContainer": "staging",
+                "pFilePath": {
+                    "value": "@concat('processed/', formatDateTime(utcNow(), 'yyyy/MM/dd'), '/sales.csv')",
+                    "type": "Expression"
+                }
+            }
+        },
+        "enableLogging": true,
+        "logStorageSettings": {
+            "linkedServiceName": {
+                "referenceName": "ls_adls_logging",
+                "type": "LinkedServiceReference"
+            },
+            "path": "logs/delete"
+        },
+        "recursive": false
+    }
+}
+```
+
+### 43.5 File Path Types and Examples
+
+## Type 1: File Path in Dataset
+
+**Use Case**: Delete specific file, path defined in dataset
+
+**Dataset Configuration:**
+```json
+{
+    "name": "ds_blob_specific_file",
+    "properties": {
+        "linkedServiceName": {
+            "referenceName": "ls_blob_storage",
+            "type": "LinkedServiceReference"
+        },
+        "parameters": {
+            "pFileName": {"type": "string"}
+        },
+        "type": "DelimitedText",
+        "typeProperties": {
+            "location": {
+                "type": "AzureBlobStorageLocation",
+                "fileName": {
+                    "value": "@dataset().pFileName",
+                    "type": "Expression"
+                },
+                "container": "staging"
+            }
+        }
+    }
+}
+```
+
+**Delete Activity:**
+```json
+{
+    "name": "Delete_File",
+    "type": "Delete",
+    "typeProperties": {
+        "dataset": {
+            "referenceName": "ds_blob_specific_file",
+            "type": "DatasetReference",
+            "parameters": {
+                "pFileName": "processed_data.csv"
+            }
+        },
+        "recursive": false
+    }
+}
+```
+
+## Type 2: Wildcard File Path
+
+**Use Case**: Delete all CSV files in a folder
+
+**Dataset Configuration:**
+```json
+{
+    "name": "ds_adls_wildcard",
+    "properties": {
+        "linkedServiceName": {
+            "referenceName": "ls_adls",
+            "type": "LinkedServiceReference"
+        },
+        "type": "DelimitedText",
+        "typeProperties": {
+            "location": {
+                "type": "AzureBlobFSLocation",
+                "folderPath": "staging/temp",
+                "fileSystem": "data"
+            }
+        }
+    }
+}
+```
+
+**Delete Activity:**
+```json
+{
+    "name": "Delete_All_CSV_Files",
+    "type": "Delete",
+    "typeProperties": {
+        "dataset": {
+            "referenceName": "ds_adls_wildcard",
+            "type": "DatasetReference"
+        },
+        "storeSettings": {
+            "type": "AzureBlobFSReadSettings",
+            "recursive": false,
+            "wildcardFileName": "*.csv",
+            "enablePartitionDiscovery": false
+        },
+        "enableLogging": true
+    }
+}
+```
+
+## Type 3: Wildcard Folder Path
+
+**Use Case**: Delete all folders matching pattern
+
+**Delete Activity:**
+```json
+{
+    "name": "Delete_Old_Date_Folders",
+    "type": "Delete",
+    "typeProperties": {
+        "dataset": {
+            "referenceName": "ds_adls_archive",
+            "type": "DatasetReference"
+        },
+        "storeSettings": {
+            "type": "AzureBlobFSReadSettings",
+            "recursive": true,
+            "wildcardFolderPath": "archive/2025/*",
+            "wildcardFileName": "*",
+            "enablePartitionDiscovery": false
+        },
+        "enableLogging": true
+    }
+}
+```
+
+## Type 4: List of Files
+
+**Use Case**: Delete specific list of files from Get Metadata or ForEach
+
+**Pipeline with Get Metadata + Delete:**
+```json
+{
+    "activities": [
+        {
+            "name": "Get_Files_To_Delete",
+            "type": "GetMetadata",
+            "typeProperties": {
+                "dataset": {
+                    "referenceName": "ds_adls_folder",
+                    "type": "DatasetReference"
+                },
+                "fieldList": ["childItems"],
+                "storeSettings": {
+                    "type": "AzureBlobFSReadSettings",
+                    "recursive": false
+                }
+            }
+        },
+        {
+            "name": "ForEach_File",
+            "type": "ForEach",
+            "dependsOn": [
+                {"activity": "Get_Files_To_Delete", "dependencyConditions": ["Succeeded"]}
+            ],
+            "typeProperties": {
+                "items": {
+                    "value": "@activity('Get_Files_To_Delete').output.childItems",
+                    "type": "Expression"
+                },
+                "activities": [
+                    {
+                        "name": "Delete_File_If_Old",
+                        "type": "IfCondition",
+                        "typeProperties": {
+                            "expression": {
+                                "value": "@less(ticks(item().lastModified), ticks(addDays(utcNow(), -7)))",
+                                "type": "Expression"
+                            },
+                            "ifTrueActivities": [
+                                {
+                                    "name": "Delete_Old_File",
+                                    "type": "Delete",
+                                    "typeProperties": {
+                                        "dataset": {
+                                            "referenceName": "ds_adls_file",
+                                            "type": "DatasetReference",
+                                            "parameters": {
+                                                "pFileName": {
+                                                    "value": "@item().name",
+                                                    "type": "Expression"
+                                                }
+                                            }
+                                        },
+                                        "recursive": false
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}
+```
+
+### 43.6 Common Use Cases and Patterns
+
+## Use Case 1: Delete After Successful Copy
+
+**Scenario**: Move files by copying then deleting source
+
+```json
+{
+    "name": "pl_move_files_copy_delete",
+    "properties": {
+        "activities": [
+            {
+                "name": "Copy_To_Archive",
+                "type": "Copy",
+                "typeProperties": {
+                    "source": {
+                        "type": "DelimitedTextSource",
+                        "storeSettings": {
+                            "type": "AzureBlobFSReadSettings",
+                            "recursive": false,
+                            "wildcardFileName": "*.csv"
+                        }
+                    },
+                    "sink": {
+                        "type": "DelimitedTextSink",
+                        "storeSettings": {
+                            "type": "AzureBlobFSWriteSettings",
+                            "copyBehavior": "PreserveHierarchy"
+                        }
+                    }
+                }
+            },
+            {
+                "name": "Delete_Source_Files",
+                "type": "Delete",
+                "dependsOn": [
+                    {
+                        "activity": "Copy_To_Archive",
+                        "dependencyConditions": ["Succeeded"]
+                    }
+                ],
+                "typeProperties": {
+                    "dataset": {
+                        "referenceName": "ds_source_staging",
+                        "type": "DatasetReference"
+                    },
+                    "storeSettings": {
+                        "type": "AzureBlobFSReadSettings",
+                        "recursive": false,
+                        "wildcardFileName": "*.csv"
+                    },
+                    "enableLogging": true,
+                    "logStorageSettings": {
+                        "linkedServiceName": {
+                            "referenceName": "ls_adls_logging",
+                            "type": "LinkedServiceReference"
+                        },
+                        "path": "logs/delete"
+                    }
+                }
+            }
+        ]
+    }
+}
+```
+
+## Use Case 2: Cleanup Staging Area
+
+**Scenario**: Delete temp files from staging after ETL completes
+
+```json
+{
+    "name": "pl_cleanup_after_etl",
+    "properties": {
+        "activities": [
+            {
+                "name": "ETL_Processing",
+                "type": "DatabricksNotebook",
+                "typeProperties": {}
+            },
+            {
+                "name": "Delete_Staging_Data",
+                "type": "Delete",
+                "dependsOn": [
+                    {
+                        "activity": "ETL_Processing",
+                        "dependencyConditions": ["Succeeded"]
+                    }
+                ],
+                "typeProperties": {
+                    "dataset": {
+                        "referenceName": "ds_staging_folder",
+                        "type": "DatasetReference"
+                    },
+                    "storeSettings": {
+                        "type": "AzureBlobFSReadSettings",
+                        "recursive": true,
+                        "wildcardFileName": "*"
+                    },
+                    "enableLogging": false
+                }
+            }
+        ]
+    }
+}
+```
+
+## Use Case 3: Data Retention Policy
+
+**Scenario**: Delete files older than 30 days
+
+```json
+{
+    "name": "pl_retention_policy_cleanup",
+    "properties": {
+        "activities": [
+            {
+                "name": "Get_All_Files",
+                "type": "GetMetadata",
+                "typeProperties": {
+                    "dataset": {
+                        "referenceName": "ds_archive_folder",
+                        "type": "DatasetReference"
+                    },
+                    "fieldList": ["childItems"],
+                    "storeSettings": {
+                        "type": "AzureBlobFSReadSettings",
+                        "recursive": false
+                    }
+                }
+            },
+            {
+                "name": "ForEach_File",
+                "type": "ForEach",
+                "dependsOn": [
+                    {"activity": "Get_All_Files", "dependencyConditions": ["Succeeded"]}
+                ],
+                "typeProperties": {
+                    "items": {
+                        "value": "@activity('Get_All_Files').output.childItems",
+                        "type": "Expression"
+                    },
+                    "activities": [
+                        {
+                            "name": "Get_File_Metadata",
+                            "type": "GetMetadata",
+                            "typeProperties": {
+                                "dataset": {
+                                    "referenceName": "ds_archive_file",
+                                    "type": "DatasetReference",
+                                    "parameters": {
+                                        "pFileName": {
+                                            "value": "@item().name",
+                                            "type": "Expression"
+                                        }
+                                    }
+                                },
+                                "fieldList": ["lastModified"]
+                            }
+                        },
+                        {
+                            "name": "If_File_Is_Old",
+                            "type": "IfCondition",
+                            "dependsOn": [
+                                {"activity": "Get_File_Metadata", "dependencyConditions": ["Succeeded"]}
+                            ],
+                            "typeProperties": {
+                                "expression": {
+                                    "value": "@less(ticks(activity('Get_File_Metadata').output.lastModified), ticks(addDays(utcNow(), -30)))",
+                                    "type": "Expression"
+                                },
+                                "ifTrueActivities": [
+                                    {
+                                        "name": "Delete_Old_File",
+                                        "type": "Delete",
+                                        "typeProperties": {
+                                            "dataset": {
+                                                "referenceName": "ds_archive_file",
+                                                "type": "DatasetReference",
+                                                "parameters": {
+                                                    "pFileName": {
+                                                        "value": "@item().name",
+                                                        "type": "Expression"
+                                                    }
+                                                }
+                                            },
+                                            "enableLogging": true,
+                                            "logStorageSettings": {
+                                                "linkedServiceName": {
+                                                    "referenceName": "ls_logging",
+                                                    "type": "LinkedServiceReference"
+                                                },
+                                                "path": "logs/retention-cleanup"
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+}
+```
+
+## Use Case 4: Conditional Cleanup Based on Success
+
+**Scenario**: Delete staging data only if downstream processing succeeds
+
+```json
+{
+    "name": "pl_conditional_cleanup",
+    "properties": {
+        "activities": [
+            {
+                "name": "Process_Data",
+                "type": "DatabricksNotebook",
+                "typeProperties": {}
+            },
+            {
+                "name": "Validate_Output",
+                "type": "Lookup",
+                "dependsOn": [
+                    {"activity": "Process_Data", "dependencyConditions": ["Succeeded"]}
+                ],
+                "typeProperties": {
+                    "source": {
+                        "type": "AzureSqlSource",
+                        "sqlReaderQuery": "SELECT COUNT(*) as row_count FROM processed.sales WHERE load_date = CAST(GETDATE() AS DATE)"
+                    }
+                }
+            },
+            {
+                "name": "If_Validation_Passed",
+                "type": "IfCondition",
+                "dependsOn": [
+                    {"activity": "Validate_Output", "dependencyConditions": ["Succeeded"]}
+                ],
+                "typeProperties": {
+                    "expression": {
+                        "value": "@greater(activity('Validate_Output').output.firstRow.row_count, 0)",
+                        "type": "Expression"
+                    },
+                    "ifTrueActivities": [
+                        {
+                            "name": "Delete_Staging_On_Success",
+                            "type": "Delete",
+                            "typeProperties": {
+                                "dataset": {
+                                    "referenceName": "ds_staging_data",
+                                    "type": "DatasetReference"
+                                },
+                                "storeSettings": {
+                                    "type": "AzureBlobFSReadSettings",
+                                    "recursive": true,
+                                    "wildcardFileName": "*"
+                                }
+                            }
+                        }
+                    ],
+                    "ifFalseActivities": [
+                        {
+                            "name": "Send_Alert_Keep_Staging",
+                            "type": "WebActivity",
+                            "typeProperties": {
+                                "url": "https://prod.eastus.logic.azure.com/...",
+                                "method": "POST",
+                                "body": {
+                                    "message": "Validation failed. Staging data preserved for troubleshooting."
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+}
+```
+
+## Use Case 5: Delete Folders by Date Pattern
+
+**Scenario**: Delete folders older than specific date (e.g., year=2025/month=01/)
+
+```json
+{
+    "name": "pl_delete_old_partitions",
+    "properties": {
+        "parameters": {
+            "pCutoffDate": {
+                "type": "string",
+                "defaultValue": "2025-01-01"
+            }
+        },
+        "activities": [
+            {
+                "name": "Delete_Old_Partitions",
+                "type": "Delete",
+                "typeProperties": {
+                    "dataset": {
+                        "referenceName": "ds_partitioned_data",
+                        "type": "DatasetReference"
+                    },
+                    "storeSettings": {
+                        "type": "AzureBlobFSReadSettings",
+                        "recursive": true,
+                        "wildcardFolderPath": {
+                            "value": "@concat('data/year=', formatDateTime(pipeline().parameters.pCutoffDate, 'yyyy'), '/month=', formatDateTime(pipeline().parameters.pCutoffDate, 'MM'), '/*')",
+                            "type": "Expression"
+                        },
+                        "wildcardFileName": "*"
+                    },
+                    "enableLogging": true,
+                    "logStorageSettings": {
+                        "linkedServiceName": {
+                            "referenceName": "ls_logging",
+                            "type": "LinkedServiceReference"
+                        },
+                        "path": "logs/partition-cleanup"
+                    }
+                }
+            }
+        ]
+    }
+}
+```
+
+### 43.7 Delete Activity Settings Explained
+
+| Setting | Description | Values/Example |
+|---------|-------------|----------------|
+| **Dataset** | Reference to data store | Dataset with file/folder location |
+| **Recursive** | Delete folder and all contents | true/false |
+| **Enable Logging** | Log deleted items | true/false |
+| **Log Storage Settings** | Where to store delete logs | Linked service + path |
+| **Max Concurrent Connections** | Parallel delete operations | Integer (1-32) |
+| **Wildcard Folder Path** | Pattern for matching folders | "archive/2025/*" |
+| **Wildcard File Name** | Pattern for matching files | "*.csv", "sales_*.txt" |
+| **Enable Partition Discovery** | Auto-detect partitioned data | true/false |
+
+### 43.8 Logging Deleted Items
+
+## Enable Logging:
+```json
+{
+    "name": "Delete_With_Logging",
+    "type": "Delete",
+    "typeProperties": {
+        "dataset": {...},
+        "enableLogging": true,
+        "logStorageSettings": {
+            "linkedServiceName": {
+                "referenceName": "ls_adls_logs",
+                "type": "LinkedServiceReference"
+            },
+            "path": "logs/delete-activity"
+        }
+    }
+}
+```
+
+## Log Output Format:
+```json
+{
+    "dataFactoryName": "adf-prod-001",
+    "pipelineName": "pl_cleanup_staging",
+    "pipelineRunId": "abcd1234-5678-90ef-ghij-klmnopqrstuv",
+    "activityName": "Delete_Old_Files",
+    "activityRunId": "efgh5678-1234-90ab-cdef-ghijklmnopqr",
+    "startTime": "2026-04-26T10:30:00.1234567Z",
+    "endTime": "2026-04-26T10:30:15.9876543Z",
+    "status": "Succeeded",
+    "itemsDeleted": 45,
+    "deletedFiles": [
+        {
+            "path": "staging/temp/file1.csv",
+            "lastModified": "2026-04-20T08:15:00Z",
+            "size": 1024000
+        },
+        {
+            "path": "staging/temp/file2.csv",
+            "lastModified": "2026-04-20T09:22:00Z",
+            "size": 2048000
+        }
+    ]
+}
+```
+
+## Access Logs:
+- Navigate to log storage location
+- Files organized by date/time
+- JSON format for programmatic access
+- Useful for audit trails and compliance
+
+### 43.9 Recursive Delete
+
+**Non-Recursive (recursive: false):**
+- Deletes only files in specified folder
+- Subfolders remain untouched
+- Safer for targeted cleanup
+
+**Recursive (recursive: true):**
+- Deletes folder and ALL contents
+- Includes all subfolders and files
+- Use with caution
+- Recommended to enable logging
+
+```json
+// Delete entire folder tree
+{
+    "name": "Delete_Folder_Tree",
+    "type": "Delete",
+    "typeProperties": {
+        "dataset": {
+            "referenceName": "ds_temp_processing_folder",
+            "type": "DatasetReference"
+        },
+        "recursive": true,
+        "enableLogging": true
+    }
+}
+```
+
+### 43.10 Best Practices
+
+1. **Always Enable Logging for Production**
+   - Provides audit trail
+   - Helps troubleshoot accidental deletions
+   - Required for compliance
+
+2. **Use Dependency Conditions**
+   - Delete staging only after downstream success
+   - Preserve data on failure for debugging
+
+3. **Test in Non-Production First**
+   - Validate wildcard patterns
+   - Ensure correct files targeted
+   - Check recursive behavior
+
+4. **Implement Soft Delete Where Possible**
+   - Move to archive instead of immediate delete
+   - Allow recovery window
+   - Azure Storage soft delete feature
+
+5. **Use Descriptive Activity Names**
+   - "Delete_Processed_Staging_Files"
+   - "Cleanup_Temp_30Days_Old"
+   - Makes monitoring easier
+
+6. **Set Appropriate Retry Policy**
+   - Network issues can cause failures
+   - Configure retry count and interval
+   - Monitor for repeated failures
+
+7. **Consider Cost**
+   - Deletion operations have cost (list operations)
+   - Balance frequency with storage cost
+   - Bulk delete vs. individual deletes
+
+8. **Validate Before Delete**
+   - Use Get Metadata to check what will be deleted
+   - Implement confirmation steps for critical data
+   - Add If Condition for conditional delete
+
+9. **Handle Time Zones**
+   - Be aware of lastModified time zones
+   - Use UTC for consistency
+   - Convert when comparing dates
+
+10. **Document Retention Policies**
+    - Clear business rules
+    - Legal/compliance requirements
+    - Communicate to stakeholders
+
+### 43.11 Error Handling
+
+## Common Errors:
+
+**Error 1: File/Folder Not Found**
+```
+Code: UserErrorFailedToDeleteFile
+Message: Failed to delete file because it does not exist.
+```
+
+**Solution**: Use If Condition to check existence first
+```json
+{
+    "name": "If_File_Exists",
+    "type": "IfCondition",
+    "typeProperties": {
+        "expression": {
+            "value": "@activity('Get_Metadata').output.exists",
+            "type": "Expression"
+        },
+        "ifTrueActivities": [
+            {
+                "name": "Delete_File",
+                "type": "Delete",
+                "typeProperties": {}
+            }
+        ]
+    }
+}
+```
+
+**Error 2: Permission Denied**
+```
+Code: UserErrorFailedToDeleteFile
+Message: Access denied. The specified resource does not exist or permission is denied.
+```
+
+**Solution**: 
+- Verify linked service has delete permissions
+- Check RBAC roles (Storage Blob Data Contributor)
+- Verify SAS token permissions include delete
+
+**Error 3: Folder Not Empty (when recursive=false)**
+```
+Code: UserErrorFailedToDeleteFolder
+Message: Cannot delete folder because it is not empty.
+```
+
+**Solution**: Set recursive=true or delete contents first
+
+**Error 4: Too Many Files**
+```
+Code: UserErrorOperationTimeout
+Message: Operation timed out.
+```
+
+**Solution**:
+- Increase timeout in retry policy
+- Break into smaller batches
+- Use parallel ForEach with smaller subsets
+
+### 43.12 Delete Activity Output
+
+**Success Output:**
+```json
+{
+    "dataWritten": 0,
+    "rowsRead": 0,
+    "filesDeleted": 150,
+    "filesRead": 150,
+    "sourcePeakConnections": 1,
+    "sinkPeakConnections": 0,
+    "copyDuration": 15,
+    "throughput": 0,
+    "errors": [],
+    "effectiveIntegrationRuntime": "AutoResolveIntegrationRuntime (East US)",
+    "executionDetails": [
+        {
+            "source": {"type": "AzureBlobFSStorage"},
+            "status": "Succeeded",
+            "start": "2026-04-26T10:30:00.1234567Z",
+            "duration": 15,
+            "usedDataIntegrationUnits": 4,
+            "detailedDurations": {
+                "queuingDuration": 2,
+                "transferDuration": 13
+            }
+        }
+    ]
+}
+```
+
+**Access in Pipeline:**
+```javascript
+// Number of files deleted
+@activity('Delete_Activity').output.filesDeleted
+
+// Check if any files were deleted
+@greater(activity('Delete_Activity').output.filesDeleted, 0)
+```
+
+### 43.13 Interview Questions on Delete Activity
+
+1. **What is the Delete Activity in ADF?**
+   - An activity that deletes files or folders from supported data stores like Blob Storage, ADLS Gen2, or file systems.
+
+2. **Can you delete database tables with Delete Activity?**
+   - No, Delete Activity works only with file-based storage. Use SQL DELETE via Stored Procedure or Script activity for databases.
+
+3. **What's the difference between recursive true and false?**
+   - recursive=true deletes folder and all contents; recursive=false deletes only files in the specified folder, leaving subfolders.
+
+4. **How do you delete files older than 30 days?**
+   - Use Get Metadata to list files, ForEach to iterate, check lastModified date with If Condition, and Delete if older than threshold.
+
+5. **Can you undo a delete operation?**
+   - No, deletion is permanent. Enable Azure Storage soft delete feature or move to archive folder instead of deleting for recovery options.
+
+6. **What's the benefit of enabling logging?**
+   - Provides audit trail of deleted items with timestamps, paths, and metadata for compliance and troubleshooting.
+
+7. **How do you delete files matching a pattern?**
+   - Use wildcardFileName in storeSettings (e.g., "*.csv", "sales_*.txt") to match and delete files by pattern.
+
+8. **What permissions are needed for Delete Activity?**
+   - Storage Blob Data Contributor role or equivalent with delete permissions on the storage account.
+
+9. **How do you safely delete staging data?**
+   - Add Delete Activity with dependency on upstream success, enable logging, and optionally move to archive before deleting.
+
+10. **Can Delete Activity delete files from on-premises file systems?**
+    - Yes, using Self-hosted Integration Runtime with file system dataset.
+
+### 43.14 Real-World Case Study
+
+**Scenario**: Automated Data Lake Cleanup and Archival
+
+**Business Requirement:**
+- Daily ETL processes leave staging files
+- Keep staging for 7 days for troubleshooting
+- Archive processed files for 90 days
+- Delete archived files older than 90 days
+- Log all deletions for audit
+- Send summary report of cleanup operations
+
+**Solution Architecture:**
+
+```json
+{
+    "name": "pl_data_lake_lifecycle_management",
+    "properties": {
+        "activities": [
+            // Step 1: Archive staging files older than 7 days
+            {
+                "name": "Get_Staging_Files",
+                "type": "GetMetadata",
+                "typeProperties": {
+                    "dataset": {
+                        "referenceName": "ds_staging_folder",
+                        "type": "DatasetReference"
+                    },
+                    "fieldList": ["childItems"],
+                    "storeSettings": {
+                        "type": "AzureBlobFSReadSettings",
+                        "recursive": false
+                    }
+                }
+            },
+            {
+                "name": "ForEach_Staging_File",
+                "type": "ForEach",
+                "dependsOn": [
+                    {"activity": "Get_Staging_Files", "dependencyConditions": ["Succeeded"]}
+                ],
+                "typeProperties": {
+                    "items": {
+                        "value": "@activity('Get_Staging_Files').output.childItems",
+                        "type": "Expression"
+                    },
+                    "isSequential": false,
+                    "batchCount": 10,
+                    "activities": [
+                        {
+                            "name": "Get_File_Age",
+                            "type": "GetMetadata",
+                            "typeProperties": {
+                                "dataset": {
+                                    "referenceName": "ds_staging_file",
+                                    "type": "DatasetReference",
+                                    "parameters": {
+                                        "pFileName": "@item().name"
+                                    }
+                                },
+                                "fieldList": ["lastModified"]
+                            }
+                        },
+                        {
+                            "name": "If_File_Older_Than_7_Days",
+                            "type": "IfCondition",
+                            "dependsOn": [
+                                {"activity": "Get_File_Age", "dependencyConditions": ["Succeeded"]}
+                            ],
+                            "typeProperties": {
+                                "expression": {
+                                    "value": "@less(ticks(activity('Get_File_Age').output.lastModified), ticks(addDays(utcNow(), -7)))",
+                                    "type": "Expression"
+                                },
+                                "ifTrueActivities": [
+                                    {
+                                        "name": "Copy_To_Archive",
+                                        "type": "Copy",
+                                        "typeProperties": {
+                                            "source": {
+                                                "type": "DelimitedTextSource"
+                                            },
+                                            "sink": {
+                                                "type": "DelimitedTextSink",
+                                                "storeSettings": {
+                                                    "type": "AzureBlobFSWriteSettings",
+                                                    "copyBehavior": "PreserveHierarchy"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "name": "Delete_From_Staging",
+                                        "type": "Delete",
+                                        "dependsOn": [
+                                            {"activity": "Copy_To_Archive", "dependencyConditions": ["Succeeded"]}
+                                        ],
+                                        "typeProperties": {
+                                            "dataset": {
+                                                "referenceName": "ds_staging_file",
+                                                "type": "DatasetReference",
+                                                "parameters": {
+                                                    "pFileName": "@item().name"
+                                                }
+                                            },
+                                            "enableLogging": true,
+                                            "logStorageSettings": {
+                                                "linkedServiceName": {
+                                                    "referenceName": "ls_logging",
+                                                    "type": "LinkedServiceReference"
+                                                },
+                                                "path": "logs/staging-cleanup"
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            },
+            
+            // Step 2: Delete archived files older than 90 days
+            {
+                "name": "Get_Archive_Files",
+                "type": "GetMetadata",
+                "typeProperties": {
+                    "dataset": {
+                        "referenceName": "ds_archive_folder",
+                        "type": "DatasetReference"
+                    },
+                    "fieldList": ["childItems"],
+                    "storeSettings": {
+                        "type": "AzureBlobFSReadSettings",
+                        "recursive": true
+                    }
+                }
+            },
+            {
+                "name": "ForEach_Archive_File",
+                "type": "ForEach",
+                "dependsOn": [
+                    {"activity": "Get_Archive_Files", "dependencyConditions": ["Succeeded"]}
+                ],
+                "typeProperties": {
+                    "items": {
+                        "value": "@activity('Get_Archive_Files').output.childItems",
+                        "type": "Expression"
+                    },
+                    "isSequential": false,
+                    "batchCount": 10,
+                    "activities": [
+                        {
+                            "name": "Get_Archive_File_Age",
+                            "type": "GetMetadata",
+                            "typeProperties": {
+                                "dataset": {
+                                    "referenceName": "ds_archive_file",
+                                    "type": "DatasetReference",
+                                    "parameters": {
+                                        "pFileName": "@item().name"
+                                    }
+                                },
+                                "fieldList": ["lastModified"]
+                            }
+                        },
+                        {
+                            "name": "If_Archive_Older_Than_90_Days",
+                            "type": "IfCondition",
+                            "dependsOn": [
+                                {"activity": "Get_Archive_File_Age", "dependencyConditions": ["Succeeded"]}
+                            ],
+                            "typeProperties": {
+                                "expression": {
+                                    "value": "@less(ticks(activity('Get_Archive_File_Age').output.lastModified), ticks(addDays(utcNow(), -90)))",
+                                    "type": "Expression"
+                                },
+                                "ifTrueActivities": [
+                                    {
+                                        "name": "Delete_From_Archive",
+                                        "type": "Delete",
+                                        "typeProperties": {
+                                            "dataset": {
+                                                "referenceName": "ds_archive_file",
+                                                "type": "DatasetReference",
+                                                "parameters": {
+                                                    "pFileName": "@item().name"
+                                                }
+                                            },
+                                            "enableLogging": true,
+                                            "logStorageSettings": {
+                                                "linkedServiceName": {
+                                                    "referenceName": "ls_logging",
+                                                    "type": "LinkedServiceReference"
+                                                },
+                                                "path": "logs/archive-cleanup"
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            },
+            
+            // Step 3: Send cleanup summary
+            {
+                "name": "Send_Cleanup_Summary",
+                "type": "WebActivity",
+                "dependsOn": [
+                    {"activity": "ForEach_Staging_File", "dependencyConditions": ["Succeeded"]},
+                    {"activity": "ForEach_Archive_File", "dependencyConditions": ["Succeeded"]}
+                ],
+                "typeProperties": {
+                    "url": "https://prod-XX.eastus.logic.azure.com:443/workflows/XXXXX/triggers/manual/paths/invoke",
+                    "method": "POST",
+                    "headers": {
+                        "Content-Type": "application/json"
+                    },
+                    "body": {
+                        "value": "@json(concat('{\"pipelineName\": \"', pipeline().Pipeline, '\",\"runId\": \"', pipeline().RunId, '\",\"stagingFilesProcessed\": ', string(activity('Get_Staging_Files').output.childItems), ',\"archiveFilesProcessed\": ', string(activity('Get_Archive_Files').output.childItems), ',\"executionTime\": \"', utcNow(), '\"}'))",
+                        "type": "Expression"
+                    }
+                }
+            }
+        ]
+    }
+}
+```
+
+**Scheduled Trigger (Daily at 2 AM):**
+```json
+{
+    "name": "tr_daily_cleanup",
+    "properties": {
+        "type": "ScheduleTrigger",
+        "typeProperties": {
+            "recurrence": {
+                "frequency": "Day",
+                "interval": 1,
+                "startTime": "2026-01-01T02:00:00Z",
+                "timeZone": "UTC",
+                "schedule": {
+                    "hours": [2],
+                    "minutes": [0]
+                }
+            }
+        },
+        "pipelines": [
+            {
+                "pipelineReference": {
+                    "referenceName": "pl_data_lake_lifecycle_management",
+                    "type": "PipelineReference"
+                }
+            }
+        ]
+    }
+}
+```
+
+**Benefits:**
+- Automated lifecycle management
+- Reduced storage costs
+- Compliance with retention policies
+- Complete audit trail via logging
+- Staging preserved for troubleshooting window
+- Archive for regulatory requirements
+- Summary notifications
+
+### 43.15 Quick Reference Summary
+
+**Delete Activity Essentials:**
+- **Purpose**: Delete files/folders from storage
+- **Supported Stores**: Blob, ADLS, File System, FTP, S3, GCS, HDFS
+- **Not For**: Database tables (use SQL DELETE)
+- **Recursive**: true = delete all contents, false = files only
+- **Logging**: Enable for audit trail
+
+**Common Patterns:**
+```javascript
+// Delete after successful copy
+Copy → (on success) → Delete
+
+// Delete files older than N days
+Get Metadata → ForEach → Check lastModified → If old → Delete
+
+// Wildcard delete
+Dataset + wildcardFileName: "*.csv"
+
+// Conditional delete
+If Condition → (if true) → Delete
+
+// Access output
+@activity('Delete_Activity').output.filesDeleted
+```
+
+**Best Practices:**
+- Enable logging in production
+- Use dependency conditions (delete only after success)
+- Test wildcard patterns in non-prod
+- Consider soft delete or archival
+- Monitor and alert on failures
+- Document retention policies
+- Handle errors gracefully
+- Validate before deleting critical data
+
+---
+
+
+---
+
+## 44. Tumbling Window Trigger - Complete Guide
+
+### 44.1 What is Tumbling Window Trigger?
+
+## Definition:
+**Tumbling Window Trigger** is a stateful trigger type that fires at periodic intervals from a specified start time while retaining state and maintaining dependencies. Unlike Schedule Trigger, it waits for pipeline completion and ensures no gaps in execution.
+
+Think of it as: **Guaranteed, sequential time-window processing with state tracking.**
+
+## Purpose:
+- Process data in non-overlapping time windows
+- Ensure 100% reliability with no gaps
+- Support backfill scenarios (process historical windows)
+- Enable trigger dependencies (wait for upstream triggers)
+- Retry failed windows automatically
+- Track processing state per window
+
+## Key Characteristics:
+- **Stateful**: Tracks which windows have been processed
+- **One-to-one**: Each trigger has exactly one pipeline
+- **Waits for completion**: Trigger run reflects pipeline status
+- **Backfill support**: Can process past time windows
+- **Dependency support**: Can depend on other tumbling window triggers
+- **Retry capability**: Automatic retry on failure
+- **Concurrency control**: Limit parallel window executions
+
+### 44.2 Tumbling Window vs Schedule Trigger
+
+| Feature | Tumbling Window Trigger | Schedule Trigger |
+|---------|------------------------|------------------|
+| **State Tracking** | Yes (knows processed windows) | No (stateless) |
+| **Backfill** | Supported (can catch up historical data) | Not supported |
+| **Reliability** | 100% (no window gaps) | Less reliable (can miss runs) |
+| **Wait for Completion** | Yes (monitors pipeline) | No (fire-and-forget) |
+| **Retry** | Built-in retry policy | Not supported |
+| **Dependencies** | Supports trigger dependencies | Not supported |
+| **Concurrency** | Explicit limits (1-50) | No concurrency control |
+| **Pipeline Relationship** | One-to-one | Many-to-many |
+| **System Variables** | WindowStart, WindowEnd | scheduledTime, startTime |
+| **Use Case** | Critical data processing, ETL | Simple scheduling, batch jobs |
+
+### 44.3 Creating Tumbling Window Trigger
+
+## JSON Definition:
+```json
+{
+    "name": "tr_hourly_tumbling_window",
+    "properties": {
+        "type": "TumblingWindowTrigger",
+        "typeProperties": {
+            "frequency": "Hour",
+            "interval": 1,
+            "startTime": "2026-01-01T00:00:00Z",
+            "endTime": "2026-12-31T23:59:59Z",
+            "delay": "00:00:00",
+            "maxConcurrency": 5,
+            "retryPolicy": {
+                "count": 3,
+                "intervalInSeconds": 300
+            }
+        },
+        "pipeline": {
+            "pipelineReference": {
+                "referenceName": "pl_hourly_processing",
+                "type": "PipelineReference"
+            },
+            "parameters": {
+                "pWindowStart": "@trigger().outputs.windowStartTime",
+                "pWindowEnd": "@trigger().outputs.windowEndTime"
+            }
+        }
+    }
+}
+```
+
+### 44.4 Time Window Frequencies
+
+## Hourly Windows
+```json
+{
+    "frequency": "Hour",
+    "interval": 1,
+    "startTime": "2026-04-01T00:00:00Z"
+}
+// Windows: 00:00-01:00, 01:00-02:00, 02:00-03:00...
+```
+
+## Every 15 Minutes
+```json
+{
+    "frequency": "Minute",
+    "interval": 15,
+    "startTime": "2026-04-26T00:00:00Z"
+}
+// Windows: 00:00-00:15, 00:15-00:30, 00:30-00:45, 00:45-01:00...
+```
+
+## Daily Windows
+```json
+{
+    "frequency": "Day",
+    "interval": 1,
+    "startTime": "2026-04-01T00:00:00Z"
+}
+// Windows: 2026-04-01 00:00-24:00, 2026-04-02 00:00-24:00...
+```
+
+## Weekly Windows
+```json
+{
+    "frequency": "Week",
+    "interval": 1,
+    "startTime": "2026-04-01T00:00:00Z"
+}
+// Windows: 7-day periods starting from 2026-04-01
+```
+
+## Monthly Windows
+```json
+{
+    "frequency": "Month",
+    "interval": 1,
+    "startTime": "2026-01-01T00:00:00Z"
+}
+// Windows: 2026-01-01 to 2026-02-01, 2026-02-01 to 2026-03-01...
+```
+
+### 44.5 Window System Variables
+
+**Access Window Boundaries:**
+```javascript
+// Window start time
+@trigger().outputs.windowStartTime
+
+// Window end time
+@trigger().outputs.windowEndTime
+
+// Format for file path
+@concat(
+    'data/',
+    'year=', formatDateTime(trigger().outputs.windowStartTime, 'yyyy'), '/',
+    'month=', formatDateTime(trigger().outputs.windowStartTime, 'MM'), '/',
+    'day=', formatDateTime(trigger().outputs.windowStartTime, 'dd'), '/'
+)
+
+// Use in SQL query
+@concat(
+    'SELECT * FROM orders WHERE order_date >= ''',
+    formatDateTime(trigger().outputs.windowStartTime, 'yyyy-MM-dd HH:mm:ss'),
+    ''' AND order_date < ''',
+    formatDateTime(trigger().outputs.windowEndTime, 'yyyy-MM-dd HH:mm:ss'),
+    ''''
+)
+```
+
+### 44.6 Backfill Support
+
+**Scenario**: Start trigger on 2026-04-26, but need to process data from 2026-04-01
+
+**Solution**: Set startTime to 2026-04-01, trigger will automatically process all windows from startTime to current time
+
+```json
+{
+    "name": "tr_backfill_example",
+    "properties": {
+        "type": "TumblingWindowTrigger",
+        "typeProperties": {
+            "frequency": "Day",
+            "interval": 1,
+            "startTime": "2026-04-01T00:00:00Z",  // Historical date
+            "maxConcurrency": 3  // Process 3 days at a time
+        },
+        "pipeline": {
+            "pipelineReference": {
+                "referenceName": "pl_daily_load",
+                "type": "PipelineReference"
+            },
+            "parameters": {
+                "pProcessDate": "@formatDateTime(trigger().outputs.windowStartTime, 'yyyy-MM-dd')"
+            }
+        }
+    }
+}
+```
+
+**When trigger starts (2026-04-26):**
+- Creates windows for: 2026-04-01, 2026-04-02, ..., 2026-04-25, 2026-04-26
+- Processes up to maxConcurrency (3) windows in parallel
+- Continues until all windows are processed
+
+### 44.7 Retry Policy
+
+**Automatic Retry on Failure:**
+```json
+{
+    "retryPolicy": {
+        "count": 3,
+        "intervalInSeconds": 300
+    }
+}
+```
+
+**Behavior:**
+- If pipeline fails, trigger retries up to `count` times
+- Waits `intervalInSeconds` between retries
+- Each retry creates new pipeline run
+- If all retries fail, window marked as failed
+- Can manually rerun failed window from Monitor tab
+
+### 44.8 Concurrency Control
+
+**maxConcurrency Setting:**
+```json
+{
+    "maxConcurrency": 5
+}
+```
+
+**Limits parallel executions:**
+- Value between 1 and 50
+- Prevents overwhelming downstream systems
+- Manages cost by limiting parallel pipelines
+- Useful for backfill scenarios
+
+**Example with 10 pending windows and maxConcurrency=3:**
+1. Windows 1, 2, 3 start processing
+2. Window 4+ wait in queue
+3. As each completes, next window starts
+4. Ensures only 3 windows run simultaneously
+
+### 44.9 Tumbling Window Dependencies
+
+**Scenario**: Process raw data hourly, then aggregate processed data
+
+**Parent Trigger (Raw Data Processing):**
+```json
+{
+    "name": "tr_hourly_raw_processing",
+    "properties": {
+        "type": "TumblingWindowTrigger",
+        "typeProperties": {
+            "frequency": "Hour",
+            "interval": 1,
+            "startTime": "2026-04-01T00:00:00Z"
+        },
+        "pipeline": {
+            "pipelineReference": {
+                "referenceName": "pl_process_raw_data",
+                "type": "PipelineReference"
+            }
+        }
+    }
+}
+```
+
+**Child Trigger (Depends on Raw Processing):**
+```json
+{
+    "name": "tr_hourly_aggregation",
+    "properties": {
+        "type": "TumblingWindowTrigger",
+        "typeProperties": {
+            "frequency": "Hour",
+            "interval": 1,
+            "startTime": "2026-04-01T00:00:00Z",
+            "dependsOn": [
+                {
+                    "type": "TumblingWindowTriggerDependencyReference",
+                    "referenceName": "tr_hourly_raw_processing",
+                    "offset": "00:00:00",  // Wait for same window
+                    "size": "01:00:00"     // Window size
+                }
+            ]
+        },
+        "pipeline": {
+            "pipelineReference": {
+                "referenceName": "pl_aggregate_data",
+                "type": "PipelineReference"
+            }
+        }
+    }
+}
+```
+
+**How Dependencies Work:**
+- Child trigger waits for parent window to succeed
+- Only then executes corresponding child window
+- If parent fails, child doesn't run
+- Ensures correct data processing order
+
+**Multiple Dependencies:**
+```json
+{
+    "dependsOn": [
+        {
+            "type": "TumblingWindowTriggerDependencyReference",
+            "referenceName": "tr_hourly_source1",
+            "offset": "00:00:00",
+            "size": "01:00:00"
+        },
+        {
+            "type": "TumblingWindowTriggerDependencyReference",
+            "referenceName": "tr_hourly_source2",
+            "offset": "00:00:00",
+            "size": "01:00:00"
+        }
+    ]
+}
+```
+
+Child runs only when BOTH dependencies succeed.
+
+### 44.10 Delay Parameter
+
+**Purpose**: Wait for late-arriving data
+
+```json
+{
+    "delay": "00:15:00"  // Wait 15 minutes after window end
+}
+```
+
+**Example**: Hourly window 00:00-01:00
+- Window end time: 01:00
+- With 15-minute delay: Pipeline starts at 01:15
+- Allows late data (timestamped 00:55) to arrive by 01:10
+
+### 44.11 Rerun Failed Windows
+
+**In Monitor Tab:**
+1. Go to **Monitor** → **Trigger runs**
+2. Filter by trigger name
+3. Find failed window
+4. Click **Rerun**
+5. Trigger creates new pipeline run for that window
+
+**Via PowerShell:**
+```powershell
+Invoke-AzDataFactoryV2TriggerRun -ResourceGroupName "rg-adf" `
+    -DataFactoryName "adf-prod" `
+    -TriggerName "tr_hourly_processing" `
+    -TriggerRunTimestamp "2026-04-26T10:00:00Z"
+```
+
+### 44.12 Use Cases
+
+## Use Case 1: Hourly IoT Data Processing
+
+**Requirement**: Process IoT sensor data every hour, ensure no data gaps
+
+```json
+{
+    "name": "tr_hourly_iot_processing",
+    "properties": {
+        "type": "TumblingWindowTrigger",
+        "typeProperties": {
+            "frequency": "Hour",
+            "interval": 1,
+            "startTime": "2026-01-01T00:00:00Z",
+            "delay": "00:10:00",
+            "maxConcurrency": 3,
+            "retryPolicy": {
+                "count": 3,
+                "intervalInSeconds": 600
+            }
+        },
+        "pipeline": {
+            "pipelineReference": {
+                "referenceName": "pl_process_iot_data",
+                "type": "PipelineReference"
+            },
+            "parameters": {
+                "pWindowStart": "@trigger().outputs.windowStartTime",
+                "pWindowEnd": "@trigger().outputs.windowEndTime",
+                "pInputPath": "@concat('raw/iot/year=', formatDateTime(trigger().outputs.windowStartTime, 'yyyy'), '/month=', formatDateTime(trigger().outputs.windowStartTime, 'MM'), '/day=', formatDateTime(trigger().outputs.windowStartTime, 'dd'), '/hour=', formatDateTime(trigger().outputs.windowStartTime, 'HH'))"
+            }
+        }
+    }
+}
+```
+
+## Use Case 2: Daily Incremental Load with Dependencies
+
+**Requirement**: Load data from 3 sources, aggregate after all complete
+
+**Source 1 Trigger:**
+```json
+{
+    "name": "tr_daily_source1_load",
+    "properties": {
+        "type": "TumblingWindowTrigger",
+        "typeProperties": {
+            "frequency": "Day",
+            "interval": 1,
+            "startTime": "2026-01-01T00:00:00Z"
+        },
+        "pipeline": {
+            "pipelineReference": {
+                "referenceName": "pl_load_source1",
+                "type": "PipelineReference"
+            },
+            "parameters": {
+                "pLoadDate": "@formatDateTime(trigger().outputs.windowStartTime, 'yyyy-MM-dd')"
+            }
+        }
+    }
+}
+```
+
+**Source 2 and 3 Triggers:** (Similar structure)
+
+**Aggregation Trigger (Depends on All 3):**
+```json
+{
+    "name": "tr_daily_aggregation",
+    "properties": {
+        "type": "TumblingWindowTrigger",
+        "typeProperties": {
+            "frequency": "Day",
+            "interval": 1,
+            "startTime": "2026-01-01T00:00:00Z",
+            "dependsOn": [
+                {
+                    "type": "TumblingWindowTriggerDependencyReference",
+                    "referenceName": "tr_daily_source1_load"
+                },
+                {
+                    "type": "TumblingWindowTriggerDependencyReference",
+                    "referenceName": "tr_daily_source2_load"
+                },
+                {
+                    "type": "TumblingWindowTriggerDependencyReference",
+                    "referenceName": "tr_daily_source3_load"
+                }
+            ]
+        },
+        "pipeline": {
+            "pipelineReference": {
+                "referenceName": "pl_aggregate_all_sources",
+                "type": "PipelineReference"
+            }
+        }
+    }
+}
+```
+
+### 44.13 Monitoring Dependencies
+
+**In Monitor Tab:**
+1. Go to **Monitor** → **Trigger runs**
+2. Click on tumbling window trigger with dependencies
+3. View dependency chain visualization
+4. See status of each dependent window
+
+**Gantt Chart View:**
+- Shows dependent triggers timeline
+- Color coding for status (Pending, Running, Succeeded, Failed)
+- Transparent boxes show dependency windows
+- Solid boxes show individual runs
+
+### 44.14 Interview Questions on Tumbling Window Trigger
+
+1. **What is Tumbling Window Trigger?**
+   - A stateful trigger that fires at periodic intervals, retains state, supports backfill, and ensures no execution gaps.
+
+2. **How is it different from Schedule Trigger?**
+   - Tumbling Window is stateful, supports backfill/retry, waits for completion, has one-to-one pipeline relationship; Schedule is stateless, fire-and-forget, many-to-many.
+
+3. **What does maxConcurrency control?**
+   - Limits the number of parallel window executions (1-50) to manage resource usage and cost.
+
+4. **Can you backfill historical data?**
+   - Yes, set startTime to past date; trigger will process all windows from start to current time.
+
+5. **How do you access window boundaries in pipeline?**
+   - Use `@trigger().outputs.windowStartTime` and `@trigger().outputs.windowEndTime`.
+
+6. **What is the purpose of delay parameter?**
+   - Waits specified duration after window end before starting pipeline, useful for late-arriving data.
+
+7. **How does retry policy work?**
+   - Automatically retries failed pipeline runs up to specified count with interval between retries.
+
+8. **Can a tumbling window trigger depend on another?**
+   - Yes, using dependsOn with TumblingWindowTriggerDependencyReference to ensure execution order.
+
+9. **How do you rerun a failed window?**
+   - In Monitor tab, find failed trigger run and click Rerun, or use PowerShell/API with specific timestamp.
+
+10. **When would you use Tumbling Window over Schedule Trigger?**
+    - For critical ETL with no tolerance for gaps, incremental loads, data with dependencies, or backfill requirements.
+
+---
+
+## 45. Event-Based Triggers - Complete Guide
+
+### 45.1 What are Event-Based Triggers?
+
+## Definition:
+**Event-Based Triggers** respond to events happening in Azure services (like file arrival/deletion in storage) or custom events in Event Grid. They enable event-driven architectures where pipelines react to changes rather than running on schedules.
+
+Think of it as: **Reactive pipelines triggered by real-world events - serverless event processing.**
+
+## Types of Event-Based Triggers:
+1. **Storage Event Trigger**: Responds to Blob Storage events (file creation/deletion)
+2. **Custom Event Trigger**: Responds to custom Event Grid topics
+
+## Purpose:
+- Process files as soon as they arrive
+- Implement near real-time data processing
+- Reduce unnecessary polling and scheduled runs
+- React to external system events
+- Build event-driven data pipelines
+
+## Key Characteristics:
+- **Event-driven**: Runs when event occurs, not on schedule
+- **Near real-time**: Minimal latency from event to pipeline execution
+- **Cost-effective**: No polling, runs only when needed
+- **Many-to-many**: One event can trigger multiple pipelines
+- **Filtering**: Can filter events by blob path patterns
+
+### 45.2 Storage Event Trigger
+
+**Supported Events:**
+- **Microsoft.Storage.BlobCreated**: File created or uploaded
+- **Microsoft.Storage.BlobDeleted**: File deleted
+
+**JSON Definition:**
+```json
+{
+    "name": "tr_storage_event_file_arrival",
+    "properties": {
+        "type": "BlobEventsTrigger",
+        "typeProperties": {
+            "blobPathBeginsWith": "/raw/containers/blobs/incoming/",
+            "blobPathEndsWith": ".csv",
+            "ignoreEmptyBlobs": true,
+            "scope": "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Storage/storageAccounts/{storageAccountName}",
+            "events": [
+                "Microsoft.Storage.BlobCreated"
+            ]
+        },
+        "pipelines": [
+            {
+                "pipelineReference": {
+                    "referenceName": "pl_process_new_file",
+                    "type": "PipelineReference"
+                },
+                "parameters": {
+                    "pFileName": "@triggerBody().fileName",
+                    "pFolderPath": "@triggerBody().folderPath",
+                    "pBlobUrl": "@triggerBody().data.url"
+                }
+            }
+        ]
+    }
+}
+```
+
+### 45.3 Storage Event Trigger Properties
+
+| Property | Description | Example |
+|----------|-------------|---------|
+| **scope** | Resource ID of storage account | Full ARM resource ID |
+| **events** | Array of event types to listen for | ["Microsoft.Storage.BlobCreated"] |
+| **blobPathBeginsWith** | Filter events by container/folder prefix | "/raw/containers/blobs/incoming/" |
+| **blobPathEndsWith** | Filter events by file extension | ".csv", ".json", ".parquet" |
+| **ignoreEmptyBlobs** | Ignore zero-byte files | true/false |
+
+### 45.4 Event Trigger System Variables
+
+**Access Event Data:**
+```javascript
+// File name
+@triggerBody().fileName
+
+// Folder path
+@triggerBody().folderPath
+
+// Full blob URL
+@triggerBody().data.url
+
+// Event type
+@triggerBody().eventType
+
+// Event time
+@triggerBody().eventTime
+
+// File size
+@triggerBody().data.contentLength
+
+// Content type
+@triggerBody().data.contentType
+
+// eTag
+@triggerBody().data.eTag
+```
+
+### 45.5 Use Cases for Storage Event Trigger
+
+## Use Case 1: Process CSV Files on Arrival
+
+**Requirement**: As soon as a CSV file lands in "incoming" folder, validate and load it
+
+```json
+{
+    "name": "tr_csv_file_arrival",
+    "properties": {
+        "type": "BlobEventsTrigger",
+        "typeProperties": {
+            "blobPathBeginsWith": "/data/containers/blobs/incoming/",
+            "blobPathEndsWith": ".csv",
+            "ignoreEmptyBlobs": true,
+            "scope": "/subscriptions/xxx/resourceGroups/rg-data/providers/Microsoft.Storage/storageAccounts/stadataprod",
+            "events": ["Microsoft.Storage.BlobCreated"]
+        },
+        "pipelines": [
+            {
+                "pipelineReference": {
+                    "referenceName": "pl_validate_and_load_csv",
+                    "type": "PipelineReference"
+                },
+                "parameters": {
+                    "pFileName": "@triggerBody().fileName",
+                    "pFolderPath": "@triggerBody().folderPath",
+                    "pFileSize": "@triggerBody().data.contentLength",
+                    "pEventTime": "@triggerBody().eventTime"
+                }
+            }
+        ]
+    }
+}
+```
+
+**Pipeline pl_validate_and_load_csv:**
+```json
+{
+    "activities": [
+        {
+            "name": "Validate_CSV_Structure",
+            "type": "Validation",
+            "typeProperties": {
+                "dataset": {
+                    "referenceName": "ds_incoming_csv",
+                    "type": "DatasetReference",
+                    "parameters": {
+                        "pFilePath": "@concat(pipeline().parameters.pFolderPath, '/', pipeline().parameters.pFileName)"
+                    }
+                },
+                "fieldList": ["exists", "itemName"]
+            }
+        },
+        {
+            "name": "Copy_To_Staging",
+            "type": "Copy",
+            "dependsOn": [
+                {"activity": "Validate_CSV_Structure", "dependencyConditions": ["Succeeded"]}
+            ],
+            "typeProperties": {}
+        },
+        {
+            "name": "Move_To_Processed",
+            "type": "Copy",
+            "dependsOn": [
+                {"activity": "Copy_To_Staging", "dependencyConditions": ["Succeeded"]}
+            ],
+            "typeProperties": {}
+        },
+        {
+            "name": "Delete_From_Incoming",
+            "type": "Delete",
+            "dependsOn": [
+                {"activity": "Move_To_Processed", "dependencyConditions": ["Succeeded"]}
+            ],
+            "typeProperties": {}
+        }
+    ]
+}
+```
+
+## Use Case 2: Multi-Format File Processing
+
+**Requirement**: Process different file types differently when they arrive
+
+```json
+{
+    "name": "tr_json_files",
+    "properties": {
+        "type": "BlobEventsTrigger",
+        "typeProperties": {
+            "blobPathBeginsWith": "/data/containers/blobs/incoming/",
+            "blobPathEndsWith": ".json",
+            "scope": "/subscriptions/xxx/.../storageAccounts/stadataprod",
+            "events": ["Microsoft.Storage.BlobCreated"]
+        },
+        "pipelines": [
+            {
+                "pipelineReference": {
+                    "referenceName": "pl_process_json_file",
+                    "type": "PipelineReference"
+                },
+                "parameters": {
+                    "pFileName": "@triggerBody().fileName"
+                }
+            }
+        ]
+    }
+}
+
+{
+    "name": "tr_parquet_files",
+    "properties": {
+        "type": "BlobEventsTrigger",
+        "typeProperties": {
+            "blobPathBeginsWith": "/data/containers/blobs/incoming/",
+            "blobPathEndsWith": ".parquet",
+            "scope": "/subscriptions/xxx/.../storageAccounts/stadataprod",
+            "events": ["Microsoft.Storage.BlobCreated"]
+        },
+        "pipelines": [
+            {
+                "pipelineReference": {
+                    "referenceName": "pl_process_parquet_file",
+                    "type": "PipelineReference"
+                },
+                "parameters": {
+                    "pFileName": "@triggerBody().fileName"
+                }
+            }
+        ]
+    }
+}
+```
+
+## Use Case 3: Cleanup on File Deletion
+
+**Requirement**: When file deleted from source, delete corresponding processed file
+
+```json
+{
+    "name": "tr_file_deletion_cleanup",
+    "properties": {
+        "type": "BlobEventsTrigger",
+        "typeProperties": {
+            "blobPathBeginsWith": "/data/containers/blobs/raw/",
+            "scope": "/subscriptions/xxx/.../storageAccounts/stadataprod",
+            "events": ["Microsoft.Storage.BlobDeleted"]
+        },
+        "pipelines": [
+            {
+                "pipelineReference": {
+                    "referenceName": "pl_cleanup_processed_file",
+                    "type": "PipelineReference"
+                },
+                "parameters": {
+                    "pDeletedFileName": "@triggerBody().fileName"
+                }
+            }
+        ]
+    }
+}
+```
+
+### 45.6 Custom Event Trigger
+
+**Purpose**: React to custom business events published to Event Grid
+
+**Prerequisites:**
+1. Create Event Grid Topic
+2. Configure event schema
+3. Publish events to topic
+4. Create Custom Event Trigger in ADF
+
+**JSON Definition:**
+```json
+{
+    "name": "tr_custom_event_order_placed",
+    "properties": {
+        "type": "CustomEventsTrigger",
+        "typeProperties": {
+            "subjectBeginsWith": "/orders/",
+            "subjectEndsWith": "/placed",
+            "events": [
+                "OrderPlaced",
+                "OrderUpdated"
+            ],
+            "scope": "/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.EventGrid/topics/{topicName}"
+        },
+        "pipelines": [
+            {
+                "pipelineReference": {
+                    "referenceName": "pl_process_order_event",
+                    "type": "PipelineReference"
+                },
+                "parameters": {
+                    "pOrderId": "@triggerBody().data.orderId",
+                    "pCustomerId": "@triggerBody().data.customerId",
+                    "pEventType": "@triggerBody().eventType"
+                }
+            }
+        ]
+    }
+}
+```
+
+**Custom Event Schema:**
+```json
+{
+    "id": "unique-event-id",
+    "eventType": "OrderPlaced",
+    "subject": "/orders/12345/placed",
+    "eventTime": "2026-04-26T10:30:00Z",
+    "data": {
+        "orderId": "12345",
+        "customerId": "C-9876",
+        "orderAmount": 250.00,
+        "orderDate": "2026-04-26"
+    },
+    "dataVersion": "1.0"
+}
+```
+
+### 45.7 Best Practices for Event-Based Triggers
+
+1. **Use Specific Path Filters**
+   - Narrow down blobPathBeginsWith and blobPathEndsWith
+   - Avoid triggering on unintended files
+   - Reduce unnecessary pipeline runs
+
+2. **Handle Concurrent Events**
+   - Multiple files can arrive simultaneously
+   - Design pipeline for parallel execution
+   - Avoid shared state or locking issues
+
+3. **Implement Idempotency**
+   - Same event might trigger multiple times (Event Grid at-least-once delivery)
+   - Pipeline should handle duplicate executions gracefully
+   - Check if processing already done before proceeding
+
+4. **Add Error Handling**
+   - Pipeline might fail for malformed files
+   - Implement try-catch logic
+   - Move failed files to error folder
+
+5. **Monitor Event Latency**
+   - Event Grid typically delivers within seconds
+   - Monitor for delays
+   - Set alerts for extended latencies
+
+6. **Test with Different Scenarios**
+   - Large files
+   - Many simultaneous files
+   - Malformed/empty files
+   - Network issues during processing
+
+7. **Ignore Empty Blobs**
+   - Set ignoreEmptyBlobs: true
+   - Prevents unnecessary runs for placeholder files
+
+8. **Consider Cost**
+   - Each event creates pipeline run
+   - High-frequency events = many runs
+   - Batch small files if possible
+
+9. **Use Event Grid Monitoring**
+   - Monitor Event Grid metrics
+   - Track delivery success rate
+   - Alert on failed deliveries
+
+10. **Document Event Schema**
+    - For custom events, maintain schema documentation
+    - Version event schemas
+    - Communicate changes to consumers
+
+### 45.8 Troubleshooting Event-Based Triggers
+
+## Issue 1: Trigger Not Firing on File Upload
+
+**Symptoms**: File uploaded but pipeline doesn't run
+
+**Checks:**
+1. Verify trigger is **Started** (not just published)
+2. Check Event Grid subscription exists (created automatically)
+3. Verify blobPathBeginsWith and blobPathEndsWith match file path
+4. Check storage account has Event Grid enabled
+5. Verify ADF has permissions on storage account
+
+**Solution:**
+```powershell
+# Check trigger status
+Get-AzDataFactoryV2Trigger -ResourceGroupName "rg-adf" `
+    -DataFactoryName "adf-prod" `
+    -Name "tr_storage_event"
+
+# Start if stopped
+Start-AzDataFactoryV2Trigger -ResourceGroupName "rg-adf" `
+    -DataFactoryName "adf-prod" `
+    -Name "tr_storage_event"
+
+# Check Event Grid subscription
+Get-AzEventGridSubscription -ResourceGroupName "rg-storage"
+```
+
+## Issue 2: Trigger Fires Too Many Times
+
+**Symptoms**: One file upload triggers multiple pipeline runs
+
+**Root Causes:**
+- File being overwritten (creates new event each time)
+- Multiple triggers with overlapping filters
+- Event Grid retries due to failures
+
+**Solution:**
+- Make filters more specific
+- Implement deduplication in pipeline
+- Check Event Grid delivery logs
+
+## Issue 3: Pipeline Parameters are Null
+
+**Symptoms**: Parameters passed from trigger are null
+
+**Common Mistakes:**
+```javascript
+// Wrong - missing triggerBody()
+"pFileName": "@trigger().fileName"
+
+// Wrong - incorrect property name
+"pFileName": "@triggerBody().name"
+
+// Correct
+"pFileName": "@triggerBody().fileName"
+```
+
+## Issue 4: Delayed Event Processing
+
+**Symptoms**: Long delay between file upload and pipeline start
+
+**Investigation:**
+- Check Event Grid metrics for delivery latency
+- Verify no backlog of events
+- Check ADF service health
+- Review pipeline queue
+
+### 45.9 Interview Questions on Event-Based Triggers
+
+1. **What are Event-Based Triggers in ADF?**
+   - Triggers that respond to events from Azure services (Storage, Event Grid) to enable event-driven pipeline execution.
+
+2. **What are the types of Event-Based Triggers?**
+   - Storage Event Trigger (blob created/deleted) and Custom Event Trigger (Event Grid custom topics).
+
+3. **What's the difference between Schedule and Event-Based Triggers?**
+   - Schedule runs on time intervals; Event-Based runs when specific events occur, enabling reactive processing.
+
+4. **How do you filter events by file type?**
+   - Use blobPathEndsWith property (e.g., ".csv", ".json") to trigger only on specific file extensions.
+
+5. **Can one event trigger multiple pipelines?**
+   - Yes, Event-Based Triggers support many-to-many relationships between events and pipelines.
+
+6. **How do you access file name in the triggered pipeline?**
+   - Use `@triggerBody().fileName` in pipeline parameters.
+
+7. **What is ignoreEmptyBlobs used for?**
+   - Set to true to prevent triggering on zero-byte files, avoiding unnecessary pipeline runs.
+
+8. **Can Event-Based Triggers be used for on-premises file systems?**
+   - No, they work with Azure Blob Storage and Event Grid. Use schedule trigger with Get Metadata for on-premises.
+
+9. **How do you handle duplicate events?**
+   - Implement idempotency in pipeline - check if file already processed before starting, use unique tracking IDs.
+
+10. **What happens if pipeline fails when triggered by event?**
+    - Event Grid doesn't automatically retry trigger creation, but you can configure retry policy in pipeline to retry failed activities.
+
+### 45.10 Real-World Case Study
+
+**Scenario**: Real-Time Sales File Processing for Retail Chain
+
+**Business Requirement:**
+- 500+ stores upload sales files throughout the day
+- Files arrive in random intervals (not on schedule)
+- Must process within 5 minutes of arrival
+- Different file formats from different POS systems
+- Move processed files to archive
+- Alert on processing failures
+
+**Solution Architecture:**
+
+**Storage Structure:**
+```
+/incoming/
+  ├─ csv/      (Store POS System A)
+  ├─ json/     (Store POS System B)
+  └─ xml/      (Store POS System C)
+/processing/
+/archive/
+  └─ {year}/{month}/{day}/
+/error/
+```
+
+**Trigger 1: CSV Files**
+```json
+{
+    "name": "tr_csv_sales_arrival",
+    "properties": {
+        "type": "BlobEventsTrigger",
+        "typeProperties": {
+            "blobPathBeginsWith": "/sales/containers/blobs/incoming/csv/",
+            "blobPathEndsWith": ".csv",
+            "ignoreEmptyBlobs": true,
+            "scope": "/subscriptions/xxx/.../storageAccounts/stasalesprod",
+            "events": ["Microsoft.Storage.BlobCreated"]
+        },
+        "pipelines": [
+            {
+                "pipelineReference": {
+                    "referenceName": "pl_process_csv_sales",
+                    "type": "PipelineReference"
+                },
+                "parameters": {
+                    "pFileName": "@triggerBody().fileName",
+                    "pFolderPath": "@triggerBody().folderPath",
+                    "pFileSize": "@triggerBody().data.contentLength",
+                    "pEventTime": "@triggerBody().eventTime",
+                    "pFileFormat": "CSV"
+                }
+            }
+        ]
+    }
+}
+```
+
+**Similar triggers for JSON and XML with different pipeline references**
+
+**Pipeline pl_process_csv_sales:**
+```json
+{
+    "name": "pl_process_csv_sales",
+    "properties": {
+        "parameters": {
+            "pFileName": {"type": "string"},
+            "pFolderPath": {"type": "string"},
+            "pFileSize": {"type": "int"},
+            "pEventTime": {"type": "string"},
+            "pFileFormat": {"type": "string"}
+        },
+        "activities": [
+            // Step 1: Move to processing folder
+            {
+                "name": "Move_To_Processing",
+                "type": "Copy",
+                "typeProperties": {
+                    "source": {
+                        "type": "DelimitedTextSource",
+                        "storeSettings": {
+                            "type": "AzureBlobFSReadSettings",
+                            "recursive": false
+                        }
+                    },
+                    "sink": {
+                        "type": "DelimitedTextSink",
+                        "storeSettings": {
+                            "type": "AzureBlobFSWriteSettings",
+                            "copyBehavior": "PreserveHierarchy"
+                        }
+                    }
+                }
+            },
+            
+            // Step 2: Validate file structure
+            {
+                "name": "Validate_CSV_Schema",
+                "type": "Lookup",
+                "dependsOn": [
+                    {"activity": "Move_To_Processing", "dependencyConditions": ["Succeeded"]}
+                ],
+                "typeProperties": {
+                    "source": {
+                        "type": "DelimitedTextSource",
+                        "storeSettings": {
+                            "type": "AzureBlobFSReadSettings"
+                        }
+                    },
+                    "dataset": {
+                        "referenceName": "ds_processing_csv",
+                        "type": "DatasetReference",
+                        "parameters": {
+                            "pFileName": "@pipeline().parameters.pFileName"
+                        }
+                    },
+                    "firstRowOnly": true
+                }
+            },
+            
+            // Step 3: Load to staging table
+            {
+                "name": "Load_To_Staging",
+                "type": "Copy",
+                "dependsOn": [
+                    {"activity": "Validate_CSV_Schema", "dependencyConditions": ["Succeeded"]}
+                ],
+                "typeProperties": {
+                    "source": {
+                        "type": "DelimitedTextSource"
+                    },
+                    "sink": {
+                        "type": "AzureSqlSink",
+                        "preCopyScript": "TRUNCATE TABLE staging.sales_csv"
+                    }
+                }
+            },
+            
+            // Step 4: Execute stored procedure for business logic
+            {
+                "name": "Execute_Business_Logic",
+                "type": "SqlServerStoredProcedure",
+                "dependsOn": [
+                    {"activity": "Load_To_Staging", "dependencyConditions": ["Succeeded"]}
+                ],
+                "typeProperties": {
+                    "storedProcedureName": "sales.usp_ProcessStagingSales",
+                    "storedProcedureParameters": {
+                        "fileName": {"value": "@pipeline().parameters.pFileName"},
+                        "eventTime": {"value": "@pipeline().parameters.pEventTime"}
+                    }
+                }
+            },
+            
+            // Step 5a: On Success - Archive file
+            {
+                "name": "Archive_File",
+                "type": "Copy",
+                "dependsOn": [
+                    {"activity": "Execute_Business_Logic", "dependencyConditions": ["Succeeded"]}
+                ],
+                "typeProperties": {
+                    "source": {
+                        "type": "DelimitedTextSource"
+                    },
+                    "sink": {
+                        "type": "DelimitedTextSink",
+                        "storeSettings": {
+                            "type": "AzureBlobFSWriteSettings",
+                            "copyBehavior": "PreserveHierarchy",
+                            "folderPath": {
+                                "value": "@concat('archive/', formatDateTime(pipeline().parameters.pEventTime, 'yyyy/MM/dd'))",
+                                "type": "Expression"
+                            }
+                        }
+                    }
+                }
+            },
+            
+            // Step 5b: Delete from processing
+            {
+                "name": "Delete_From_Processing",
+                "type": "Delete",
+                "dependsOn": [
+                    {"activity": "Archive_File", "dependencyConditions": ["Succeeded"]}
+                ],
+                "typeProperties": {}
+            },
+            
+            // Step 6a: On Failure - Move to error folder
+            {
+                "name": "Move_To_Error",
+                "type": "Copy",
+                "dependsOn": [
+                    {"activity": "Execute_Business_Logic", "dependencyConditions": ["Failed"]}
+                ],
+                "typeProperties": {}
+            },
+            
+            // Step 6b: Send failure alert
+            {
+                "name": "Send_Failure_Alert",
+                "type": "WebActivity",
+                "dependsOn": [
+                    {"activity": "Move_To_Error", "dependencyConditions": ["Succeeded"]}
+                ],
+                "typeProperties": {
+                    "url": "https://prod.eastus.logic.azure.com/...",
+                    "method": "POST",
+                    "body": {
+                        "value": "@json(concat('{\"fileName\": \"', pipeline().parameters.pFileName, '\",\"error\": \"', activity('Execute_Business_Logic').output.errors[0].Message, '\",\"eventTime\": \"', pipeline().parameters.pEventTime, '\"}'))",
+                        "type": "Expression"
+                    }
+                }
+            }
+        ]
+    }
+}
+```
+
+**Benefits:**
+- Near real-time processing (average 30 seconds from upload to complete)
+- No polling overhead
+- Handles multiple file formats
+- Automatic error handling and alerting
+- Complete audit trail with archival
+- Cost-effective (runs only when files arrive)
+- Scales automatically with file volume
+
+---
+
+
+---
+
+## 46. Scenario-Based Interview Questions with Detailed Answers
+
+### 46.1 Data Migration and ETL Scenarios
+
+**Scenario 1: Incremental Data Load**
+
+**Question**: You need to copy only new or updated records from an on-premises SQL Server to Azure SQL Database daily. The source table has a "LastModifiedDate" column. How would you implement this?
+
+**Answer**:
+```json
+// Solution: Use Watermark Pattern
+
+// Step 1: Create Control Table
+CREATE TABLE control.Watermark (
+    TableName NVARCHAR(100) PRIMARY KEY,
+    WatermarkValue DATETIME,
+    LastUpdateDate DATETIME
+);
+
+// Step 2: Pipeline Implementation
+{
+    "activities": [
+        // 1. Get last watermark
+        {
+            "name": "Lookup_Last_Watermark",
+            "type": "Lookup",
+            "typeProperties": {
+                "source": {
+                    "type": "AzureSqlSource",
+                    "sqlReaderQuery": "SELECT WatermarkValue FROM control.Watermark WHERE TableName = 'Customers'"
+                }
+            }
+        },
+        
+        // 2. Get current watermark (max modified date from source)
+        {
+            "name": "Lookup_Current_Watermark",
+            "type": "Lookup",
+            "typeProperties": {
+                "source": {
+                    "type": "SqlServerSource",
+                    "sqlReaderQuery": "SELECT MAX(LastModifiedDate) as CurrentWatermark FROM dbo.Customers"
+                }
+            }
+        },
+        
+        // 3. Copy incremental data
+        {
+            "name": "Copy_Incremental_Data",
+            "type": "Copy",
+            "dependsOn": [
+                {"activity": "Lookup_Last_Watermark", "dependencyConditions": ["Succeeded"]},
+                {"activity": "Lookup_Current_Watermark", "dependencyConditions": ["Succeeded"]}
+            ],
+            "typeProperties": {
+                "source": {
+                    "type": "SqlServerSource",
+                    "sqlReaderQuery": {
+                        "value": "@concat('SELECT * FROM dbo.Customers WHERE LastModifiedDate > ''', activity('Lookup_Last_Watermark').output.firstRow.WatermarkValue, ''' AND LastModifiedDate <= ''', activity('Lookup_Current_Watermark').output.firstRow.CurrentWatermark, '''')",
+                        "type": "Expression"
+                    }
+                },
+                "sink": {
+                    "type": "AzureSqlSink",
+                    "writeBehavior": "upsert",
+                    "upsertSettings": {
+                        "useTempDB": true,
+                        "keys": ["CustomerID"]
+                    }
+                }
+            }
+        },
+        
+        // 4. Update watermark
+        {
+            "name": "Update_Watermark",
+            "type": "SqlServerStoredProcedure",
+            "dependsOn": [
+                {"activity": "Copy_Incremental_Data", "dependencyConditions": ["Succeeded"]}
+            ],
+            "typeProperties": {
+                "storedProcedureName": "control.usp_UpdateWatermark",
+                "storedProcedureParameters": {
+                    "tableName": {"value": "Customers"},
+                    "newWatermark": {
+                        "value": "@activity('Lookup_Current_Watermark').output.firstRow.CurrentWatermark",
+                        "type": "Expression"
+                    }
+                }
+            }
+        }
+    ]
+}
+```
+
+**Key Points:**
+- Use Lookup to get last watermark from control table
+- Get current max modified date from source
+- Copy only records between watermarks
+- Use upsert to handle updates
+- Update watermark only on success
+- Schedule with tumbling window trigger for reliability
+
+---
+
+**Scenario 2: Copying 100 Tables with Metadata-Driven Approach**
+
+**Question**: You need to copy 100 tables from SQL Server to Data Lake. How do you avoid creating 100 separate pipelines?
+
+**Answer**:
+```sql
+-- Step 1: Create Configuration Table
+CREATE TABLE control.TableList (
+    TableID INT IDENTITY PRIMARY KEY,
+    SourceSchema NVARCHAR(50),
+    SourceTable NVARCHAR(100),
+    TargetPath NVARCHAR(500),
+    LoadType NVARCHAR(20), -- 'Full' or 'Incremental'
+    WatermarkColumn NVARCHAR(100),
+    IsActive BIT DEFAULT 1
+);
+
+INSERT INTO control.TableList VALUES
+('dbo', 'Customers', 'bronze/customers', 'Incremental', 'LastModifiedDate', 1),
+('dbo', 'Orders', 'bronze/orders', 'Incremental', 'OrderDate', 1),
+('dbo', 'Products', 'bronze/products', 'Full', NULL, 1);
+```
+
+```json
+// Parent Pipeline
+{
+    "name": "pl_master_ingestion",
+    "activities": [
+        // 1. Get table list
+        {
+            "name": "Lookup_Table_List",
+            "type": "Lookup",
+            "typeProperties": {
+                "source": {
+                    "type": "AzureSqlSource",
+                    "sqlReaderQuery": "SELECT * FROM control.TableList WHERE IsActive = 1"
+                },
+                "firstRowOnly": false
+            }
+        },
+        
+        // 2. ForEach table
+        {
+            "name": "ForEach_Table",
+            "type": "ForEach",
+            "dependsOn": [
+                {"activity": "Lookup_Table_List", "dependencyConditions": ["Succeeded"]}
+            ],
+            "typeProperties": {
+                "items": {
+                    "value": "@activity('Lookup_Table_List').output.value",
+                    "type": "Expression"
+                },
+                "isSequential": false,
+                "batchCount": 10,
+                "activities": [
+                    {
+                        "name": "Execute_Child_Pipeline",
+                        "type": "ExecutePipeline",
+                        "typeProperties": {
+                            "pipeline": {
+                                "referenceName": "pl_child_copy_table",
+                                "type": "PipelineReference"
+                            },
+                            "parameters": {
+                                "pSourceSchema": "@item().SourceSchema",
+                                "pSourceTable": "@item().SourceTable",
+                                "pTargetPath": "@item().TargetPath",
+                                "pLoadType": "@item().LoadType",
+                                "pWatermarkColumn": "@item().WatermarkColumn"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}
+
+// Child Pipeline
+{
+    "name": "pl_child_copy_table",
+    "parameters": {
+        "pSourceSchema": {"type": "string"},
+        "pSourceTable": {"type": "string"},
+        "pTargetPath": {"type": "string"},
+        "pLoadType": {"type": "string"},
+        "pWatermarkColumn": {"type": "string"}
+    },
+    "activities": [
+        {
+            "name": "If_Incremental_Load",
+            "type": "IfCondition",
+            "typeProperties": {
+                "expression": {
+                    "value": "@equals(pipeline().parameters.pLoadType, 'Incremental')",
+                    "type": "Expression"
+                },
+                "ifTrueActivities": [
+                    // Incremental logic with watermark
+                ],
+                "ifFalseActivities": [
+                    // Full load logic
+                ]
+            }
+        }
+    ]
+}
+```
+
+**Benefits:**
+- Single child pipeline handles all tables
+- Easy to add new tables (just INSERT into config table)
+- Parallel processing with batchCount
+- Dynamic load type per table
+- Centralized configuration
+- No code changes for new tables
+
+---
+
+**Scenario 3: Handling Large File Splits**
+
+**Question**: You have a 50GB CSV file in Blob Storage. Copying it times out. How do you handle this?
+
+**Answer**:
+**Option 1: Increase DIUs and Parallelism**
+```json
+{
+    "name": "Copy_Large_File",
+    "type": "Copy",
+    "typeProperties": {
+        "source": {
+            "type": "DelimitedTextSource",
+            "storeSettings": {
+                "type": "AzureBlobStorageReadSettings",
+                "maxConcurrentConnections": 32
+            }
+        },
+        "sink": {
+            "type": "DelimitedTextSink"
+        },
+        "enableStaging": true,
+        "stagingSettings": {
+            "linkedServiceName": {
+                "referenceName": "ls_staging_storage",
+                "type": "LinkedServiceReference"
+            }
+        },
+        "parallelCopies": 32,
+        "dataIntegrationUnits": 256
+    }
+}
+```
+
+**Option 2: Split File into Chunks**
+```bash
+# Pre-process: Split large file into smaller chunks
+split -l 1000000 large_file.csv chunk_
+
+# Results in: chunk_aa, chunk_ab, chunk_ac, etc.
+```
+
+```json
+// Then process each chunk
+{
+    "name": "ForEach_Chunk",
+    "type": "ForEach",
+    "typeProperties": {
+        "items": {
+            "value": "@activity('Get_Chunk_Files').output.childItems",
+            "type": "Expression"
+        },
+        "isSequential": false,
+        "batchCount": 10,
+        "activities": [
+            {
+                "name": "Copy_Chunk",
+                "type": "Copy",
+                "typeProperties": {
+                    "source": {
+                        "type": "DelimitedTextSource",
+                        "storeSettings": {
+                            "type": "AzureBlobStorageReadSettings",
+                            "wildcardFileName": "@item().name"
+                        }
+                    }
+                }
+            }
+        ]
+    }
+}
+```
+
+**Option 3: Use Data Flow for Large-Scale Transformations**
+```json
+{
+    "name": "Data_Flow_Large_File",
+    "type": "ExecuteDataFlow",
+    "typeProperties": {
+        "dataflow": {
+            "referenceName": "df_process_large_file",
+            "type": "DataFlowReference"
+        },
+        "compute": {
+            "coreCount": 32,
+            "computeType": "MemoryOptimized"
+        }
+    }
+}
+```
+
+---
+
+### 46.2 Error Handling and Retry Scenarios
+
+**Scenario 4: Graceful Error Handling with Notifications**
+
+**Question**: How do you handle failures in a pipeline that processes multiple files, ensuring failed files don't stop the entire process and stakeholders are notified?
+
+**Answer**:
+```json
+{
+    "name": "pl_process_files_with_error_handling",
+    "activities": [
+        {
+            "name": "Get_Files_To_Process",
+            "type": "GetMetadata",
+            "typeProperties": {
+                "dataset": {
+                    "referenceName": "ds_incoming_folder",
+                    "type": "DatasetReference"
+                },
+                "fieldList": ["childItems"]
+            }
+        },
+        {
+            "name": "ForEach_File",
+            "type": "ForEach",
+            "dependsOn": [
+                {"activity": "Get_Files_To_Process", "dependencyConditions": ["Succeeded"]}
+            ],
+            "typeProperties": {
+                "items": {
+                    "value": "@activity('Get_Files_To_Process').output.childItems",
+                    "type": "Expression"
+                },
+                "isSequential": false,
+                "batchCount": 10,
+                "activities": [
+                    // Process file
+                    {
+                        "name": "Copy_File",
+                        "type": "Copy",
+                        "typeProperties": {}
+                    },
+                    
+                    // Success path
+                    {
+                        "name": "Move_To_Processed",
+                        "type": "Copy",
+                        "dependsOn": [
+                            {"activity": "Copy_File", "dependencyConditions": ["Succeeded"]}
+                        ],
+                        "typeProperties": {}
+                    },
+                    {
+                        "name": "Delete_From_Incoming",
+                        "type": "Delete",
+                        "dependsOn": [
+                            {"activity": "Move_To_Processed", "dependencyConditions": ["Succeeded"]}
+                        ],
+                        "typeProperties": {}
+                    },
+                    
+                    // Failure path
+                    {
+                        "name": "Move_To_Error",
+                        "type": "Copy",
+                        "dependsOn": [
+                            {"activity": "Copy_File", "dependencyConditions": ["Failed"]}
+                        ],
+                        "typeProperties": {}
+                    },
+                    {
+                        "name": "Log_Error",
+                        "type": "SqlServerStoredProcedure",
+                        "dependsOn": [
+                            {"activity": "Move_To_Error", "dependencyConditions": ["Succeeded"]}
+                        ],
+                        "typeProperties": {
+                            "storedProcedureName": "control.usp_LogError",
+                            "storedProcedureParameters": {
+                                "pipelineName": {"value": "@pipeline().Pipeline"},
+                                "fileName": {"value": "@item().name"},
+                                "errorMessage": {"value": "@activity('Copy_File').output.errors[0].Message"},
+                                "errorTime": {"value": "@utcNow()"}
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        
+        // Final notification
+        {
+            "name": "Send_Summary_Email",
+            "type": "WebActivity",
+            "dependsOn": [
+                {"activity": "ForEach_File", "dependencyConditions": ["Completed"]}
+            ],
+            "typeProperties": {
+                "url": "https://prod.eastus.logic.azure.com/...",
+                "method": "POST",
+                "body": {
+                    "value": "@json(concat('{\"totalFiles\":', length(activity('Get_Files_To_Process').output.childItems), ',\"successCount\":', sub(length(activity('Get_Files_To_Process').output.childItems), length(activity('ForEach_File').output.failedActivities)), ',\"failureCount\":', length(activity('ForEach_File').output.failedActivities), '}'))",
+                    "type": "Expression"
+                }
+            }
+        }
+    ]
+}
+```
+
+**Key Points:**
+- ForEach doesn't stop on individual failures
+- Separate success and failure paths using dependencyConditions
+- Move failed files to error folder
+- Log errors to database for analysis
+- Send summary notification regardless of individual failures
+- Use "Completed" dependency condition to run notification even with failures
+
+---
+
+**Scenario 5: Retry Logic for Transient Failures**
+
+**Question**: How do you implement retry logic for activities that might fail due to transient network issues?
+
+**Answer**:
+```json
+// Option 1: Activity-Level Retry Policy
+{
+    "name": "Copy_With_Retry",
+    "type": "Copy",
+    "typeProperties": {},
+    "policy": {
+        "timeout": "7.00:00:00",
+        "retry": 3,
+        "retryIntervalInSeconds": 300,
+        "secureOutput": false,
+        "secureInput": false
+    }
+}
+
+// Option 2: Until Loop for Custom Retry Logic
+{
+    "name": "Until_Success_Or_Max_Retries",
+    "type": "Until",
+    "typeProperties": {
+        "expression": {
+            "value": "@or(equals(variables('vCopyStatus'), 'Succeeded'), greaterOrEquals(variables('vRetryCount'), 3))",
+            "type": "Expression"
+        },
+        "activities": [
+            {
+                "name": "Try_Copy",
+                "type": "Copy",
+                "typeProperties": {}
+            },
+            {
+                "name": "Set_Success_Status",
+                "type": "SetVariable",
+                "dependsOn": [
+                    {"activity": "Try_Copy", "dependencyConditions": ["Succeeded"]}
+                ],
+                "typeProperties": {
+                    "variableName": "vCopyStatus",
+                    "value": "Succeeded"
+                }
+            },
+            {
+                "name": "Increment_Retry_Count",
+                "type": "SetVariable",
+                "dependsOn": [
+                    {"activity": "Try_Copy", "dependencyConditions": ["Failed"]}
+                ],
+                "typeProperties": {
+                    "variableName": "vRetryCount",
+                    "value": {
+                        "value": "@add(variables('vRetryCount'), 1)",
+                        "type": "Expression"
+                    }
+                }
+            },
+            {
+                "name": "Wait_Before_Retry",
+                "type": "Wait",
+                "dependsOn": [
+                    {"activity": "Increment_Retry_Count", "dependencyConditions": ["Succeeded"]}
+                ],
+                "typeProperties": {
+                    "waitTimeInSeconds": 300
+                }
+            }
+        ],
+        "timeout": "1.00:00:00"
+    }
+}
+
+// Option 3: Using Tumbling Window Trigger Retry
+{
+    "name": "tr_with_retry",
+    "properties": {
+        "type": "TumblingWindowTrigger",
+        "typeProperties": {
+            "frequency": "Hour",
+            "interval": 1,
+            "retryPolicy": {
+                "count": 3,
+                "intervalInSeconds": 600
+            }
+        },
+        "pipeline": {
+            "pipelineReference": {
+                "referenceName": "pl_data_processing",
+                "type": "PipelineReference"
+            }
+        }
+    }
+}
+```
+
+---
+
+### 46.3 Performance Optimization Scenarios
+
+**Scenario 6: Slow Copy Activity Performance**
+
+**Question**: Your Copy Activity takes 2 hours to copy 100GB of data. How do you optimize it?
+
+**Answer**:
+**Step 1: Analyze Current Performance**
+```json
+// Check copy activity output
+{
+    "dataRead": 107374182400,  // 100GB
+    "dataWritten": 107374182400,
+    "rowsCopied": 50000000,
+    "copyDuration": 7200,  // 2 hours
+    "throughput": 14.6,  // MB/s - Too slow!
+    "usedDataIntegrationUnits": 4,  // Default
+    "usedParallelCopies": 4  // Default
+}
+```
+
+**Step 2: Optimization Strategy**
+```json
+{
+    "name": "Optimized_Copy",
+    "type": "Copy",
+    "typeProperties": {
+        "source": {
+            "type": "AzureSqlSource",
+            "partitionOption": "PhysicalPartitionsOfTable",
+            "partitionSettings": {
+                "partitionColumnName": "OrderDate",
+                "partitionUpperBound": "2026-12-31",
+                "partitionLowerBound": "2026-01-01"
+            }
+        },
+        "sink": {
+            "type": "DelimitedTextSink",
+            "storeSettings": {
+                "type": "AzureBlobFSWriteSettings",
+                "maxConcurrentConnections": 32
+            }
+        },
+        "enableStaging": true,
+        "stagingSettings": {
+            "linkedServiceName": {
+                "referenceName": "ls_staging_storage",
+                "type": "LinkedServiceReference"
+            },
+            "enableCompression": true
+        },
+        "parallelCopies": 32,
+        "dataIntegrationUnits": 128,
+        "enableSkipIncompatibleRow": false
+    }
+}
+```
+
+**Optimizations Applied:**
+1. **Increase DIUs**: 4 → 128 (32x more compute)
+2. **Parallel Copies**: 4 → 32 (8x more parallelism)
+3. **Source Partitioning**: Split large table into partitions
+4. **Staging**: Use staging storage with compression
+5. **Max Concurrent Connections**: Increase to 32
+
+**Expected Results:**
+- Duration: 2 hours → 15-20 minutes
+- Throughput: 14.6 MB/s → 110-130 MB/s
+
+**Additional Tips:**
+- Use column projection (select only needed columns)
+- Apply filter at source (WHERE clause)
+- Consider Parquet for better compression
+- Schedule during off-peak hours
+
+---
+
+**Scenario 7: Optimizing ForEach with Large Item Lists**
+
+**Question**: You have a ForEach loop processing 10,000 files sequentially. It takes 20 hours. How do you speed it up?
+
+**Answer**:
+**Problem:**
+```json
+{
+    "name": "ForEach_Sequential",
+    "type": "ForEach",
+    "typeProperties": {
+        "items": "@activity('Get_Files').output.childItems",  // 10,000 items
+        "isSequential": true,  // Processing one at a time
+        "activities": [
+            {
+                "name": "Process_File",
+                "type": "Copy",
+                "typeProperties": {}  // Takes ~7 seconds each
+            }
+        ]
+    }
+}
+// Total time: 10,000 × 7 seconds = ~19.4 hours
+```
+
+**Solution:**
+```json
+{
+    "name": "ForEach_Parallel",
+    "type": "ForEach",
+    "typeProperties": {
+        "items": "@activity('Get_Files').output.childItems",
+        "isSequential": false,  // Parallel execution
+        "batchCount": 50,  // 50 files at a time
+        "activities": [
+            {
+                "name": "Process_File",
+                "type": "Copy",
+                "typeProperties": {}
+            }
+        ]
+    }
+}
+// Total time: (10,000 ÷ 50) × 7 seconds = ~23 minutes
+```
+
+**Advanced: Batch Processing**
+```json
+{
+    "name": "pl_batch_processor",
+    "activities": [
+        // Split 10,000 files into 200 batches of 50
+        {
+            "name": "Create_Batches",
+            "type": "Lookup",
+            "typeProperties": {
+                "source": {
+                    "type": "AzureSqlSource",
+                    "sqlReaderQuery": "SELECT BatchID, STRING_AGG(FileName, ',') as FileList FROM (SELECT ROW_NUMBER() OVER (ORDER BY FileName) / 50 as BatchID, FileName FROM control.FilesToProcess) GROUP BY BatchID"
+                },
+                "firstRowOnly": false
+            }
+        },
+        {
+            "name": "ForEach_Batch",
+            "type": "ForEach",
+            "typeProperties": {
+                "items": "@activity('Create_Batches').output.value",
+                "isSequential": false,
+                "batchCount": 20,  // Process 20 batches in parallel
+                "activities": [
+                    {
+                        "name": "Execute_Batch_Pipeline",
+                        "type": "ExecutePipeline",
+                        "typeProperties": {
+                            "pipeline": {
+                                "referenceName": "pl_process_batch",
+                                "type": "PipelineReference"
+                            },
+                            "parameters": {
+                                "pFileList": "@item().FileList"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}
+```
+
+**Results:**
+- Sequential: 19.4 hours
+- Parallel (50 batch): 23 minutes
+- Batch processing: 10-12 minutes
+
+---
+
+### 46.4 Security and Access Control Scenarios
+
+**Scenario 8: Secure Credential Management**
+
+**Question**: How do you securely store and use database passwords and connection strings in ADF without hardcoding them?
+
+**Answer**:
+**Option 1: Azure Key Vault Integration**
+```json
+// Step 1: Create Key Vault and store secret
+// In Azure Portal: Key Vault → Secrets → Generate/Import
+// Secret Name: sql-server-password
+// Secret Value: YourStrongP@ssw0rd!
+
+// Step 2: Create Linked Service to Key Vault
+{
+    "name": "ls_key_vault",
+    "type": "AzureKeyVault",
+    "typeProperties": {
+        "baseUrl": "https://kv-prod-adf.vault.azure.net/"
+    }
+}
+
+// Step 3: Reference secret in SQL Linked Service
+{
+    "name": "ls_sql_server",
+    "type": "SqlServer",
+    "typeProperties": {
+        "connectionString": "Server=sql-server.database.windows.net;Database=SalesDB;User ID=admin;",
+        "password": {
+            "type": "AzureKeyVaultSecret",
+            "store": {
+                "referenceName": "ls_key_vault",
+                "type": "LinkedServiceReference"
+            },
+            "secretName": "sql-server-password"
+        }
+    },
+    "connectVia": {
+        "referenceName": "ir-self-hosted",
+        "type": "IntegrationRuntimeReference"
+    }
+}
+```
+
+**Option 2: Managed Identity**
+```json
+{
+    "name": "ls_sql_with_managed_identity",
+    "type": "AzureSqlDatabase",
+    "typeProperties": {
+        "connectionString": "Server=tcp:sql-prod.database.windows.net,1433;Database=SalesDB;"
+    },
+    "connectVia": {
+        "referenceName": "AutoResolveIntegrationRuntime",
+        "type": "IntegrationRuntimeReference"
+    },
+    "authentication": {
+        "type": "ManagedServiceIdentity"
+    }
+}
+```
+
+**Option 3: Service Principal**
+```json
+{
+    "name": "ls_adls_service_principal",
+    "type": "AzureBlobFS",
+    "typeProperties": {
+        "url": "https://stadatalake.dfs.core.windows.net",
+        "tenant": "your-tenant-id",
+        "servicePrincipalId": "your-app-id",
+        "servicePrincipalKey": {
+            "type": "AzureKeyVaultSecret",
+            "store": {
+                "referenceName": "ls_key_vault",
+                "type": "LinkedServiceReference"
+            },
+            "secretName": "service-principal-secret"
+        }
+    }
+}
+```
+
+**Benefits:**
+- No hardcoded credentials
+- Centralized secret management
+- Automatic secret rotation
+- Audit trail in Key Vault
+- Granular access control
+
+---
+
+**Scenario 9: Row-Level Security with Dynamic Filtering**
+
+**Question**: Different users should see different subsets of data when accessing the same dataset. How do you implement this in ADF?
+
+**Answer**:
+```json
+{
+    "name": "pl_filtered_data_extraction",
+    "parameters": {
+        "pUserEmail": {"type": "string"},
+        "pUserRole": {"type": "string"}
+    },
+    "activities": [
+        // 1. Get user's allowed regions
+        {
+            "name": "Lookup_User_Permissions",
+            "type": "Lookup",
+            "typeProperties": {
+                "source": {
+                    "type": "AzureSqlSource",
+                    "sqlReaderQuery": {
+                        "value": "@concat('SELECT STRING_AGG(RegionCode, '','') as AllowedRegions FROM security.UserPermissions WHERE UserEmail = ''', pipeline().parameters.pUserEmail, '''')",
+                        "type": "Expression"
+                    }
+                }
+            }
+        },
+        
+        // 2. Build dynamic filter
+        {
+            "name": "Copy_Filtered_Data",
+            "type": "Copy",
+            "dependsOn": [
+                {"activity": "Lookup_User_Permissions", "dependencyConditions": ["Succeeded"]}
+            ],
+            "typeProperties": {
+                "source": {
+                    "type": "AzureSqlSource",
+                    "sqlReaderQuery": {
+                        "value": "@if(equals(pipeline().parameters.pUserRole, 'Admin'), 'SELECT * FROM sales.Orders', concat('SELECT * FROM sales.Orders WHERE RegionCode IN (', activity('Lookup_User_Permissions').output.firstRow.AllowedRegions, ')'))",
+                        "type": "Expression"
+                    }
+                },
+                "sink": {
+                    "type": "DelimitedTextSink",
+                    "storeSettings": {
+                        "type": "AzureBlobStorageWriteSettings",
+                        "copyBehavior": "PreserveHierarchy",
+                        "folderPath": {
+                            "value": "@concat('exports/', pipeline().parameters.pUserEmail, '/', formatDateTime(utcNow(), 'yyyyMMdd'))",
+                            "type": "Expression"
+                        }
+                    }
+                }
+            }
+        },
+        
+        // 3. Log data access
+        {
+            "name": "Log_Data_Access",
+            "type": "SqlServerStoredProcedure",
+            "dependsOn": [
+                {"activity": "Copy_Filtered_Data", "dependencyConditions": ["Succeeded"]}
+            ],
+            "typeProperties": {
+                "storedProcedureName": "security.usp_LogDataAccess",
+                "storedProcedureParameters": {
+                    "userEmail": {"value": "@pipeline().parameters.pUserEmail"},
+                    "userRole": {"value": "@pipeline().parameters.pUserRole"},
+                    "rowsExported": {"value": "@activity('Copy_Filtered_Data').output.rowsCopied"},
+                    "accessTime": {"value": "@utcNow()"}
+                }
+            }
+        }
+    ]
+}
+```
+
+---
+
+### 46.5 Advanced Integration Scenarios
+
+**Scenario 10: Orchestrating Multiple Data Sources**
+
+**Question**: You need to join data from SQL Server, Cosmos DB, and REST API in one pipeline. How do you accomplish this?
+
+**Answer**:
+```json
+{
+    "name": "pl_multi_source_integration",
+    "activities": [
+        // 1. Extract from SQL Server
+        {
+            "name": "Copy_SQL_Customer_Data",
+            "type": "Copy",
+            "typeProperties": {
+                "source": {
+                    "type": "SqlServerSource",
+                    "sqlReaderQuery": "SELECT CustomerID, CustomerName, Region FROM dbo.Customers WHERE IsActive = 1"
+                },
+                "sink": {
+                    "type": "DelimitedTextSink",
+                    "storeSettings": {
+                        "type": "AzureBlobFSWriteSettings",
+                        "folderPath": "staging/customers"
+                    }
+                }
+            }
+        },
+        
+        // 2. Extract from Cosmos DB
+        {
+            "name": "Copy_Cosmos_Order_Data",
+            "type": "Copy",
+            "typeProperties": {
+                "source": {
+                    "type": "CosmosDbSqlApiSource",
+                    "query": "SELECT c.customerId, c.orderId, c.orderTotal FROM c WHERE c.orderDate >= '2026-01-01'"
+                },
+                "sink": {
+                    "type": "DelimitedTextSink",
+                    "storeSettings": {
+                        "type": "AzureBlobFSWriteSettings",
+                        "folderPath": "staging/orders"
+                    }
+                }
+            }
+        },
+        
+        // 3. Extract from REST API
+        {
+            "name": "ForEach_Customer_For_API_Call",
+            "type": "ForEach",
+            "dependsOn": [
+                {"activity": "Copy_SQL_Customer_Data", "dependencyConditions": ["Succeeded"]}
+            ],
+            "typeProperties": {
+                "items": {
+                    "value": "@activity('Lookup_Customer_IDs').output.value",
+                    "type": "Expression"
+                },
+                "activities": [
+                    {
+                        "name": "Get_Customer_Preferences_API",
+                        "type": "WebActivity",
+                        "typeProperties": {
+                            "url": {
+                                "value": "@concat('https://api.example.com/customers/', item().customerId, '/preferences')",
+                                "type": "Expression"
+                            },
+                            "method": "GET",
+                            "headers": {
+                                "Authorization": "Bearer @{linkedService().apiToken}"
+                            }
+                        }
+                    },
+                    {
+                        "name": "Save_API_Response",
+                        "type": "Copy",
+                        "dependsOn": [
+                            {"activity": "Get_Customer_Preferences_API", "dependencyConditions": ["Succeeded"]}
+                        ],
+                        "typeProperties": {
+                            "source": {
+                                "type": "RestSource",
+                                "httpRequestTimeout": "00:01:00",
+                                "requestInterval": "00:00:01",
+                                "additionalHeaders": {},
+                                "paginationRules": {}
+                            },
+                            "sink": {
+                                "type": "JsonSink",
+                                "storeSettings": {
+                                    "type": "AzureBlobFSWriteSettings",
+                                    "folderPath": "staging/preferences"
+                                }
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        
+        // 4. Join all data using Data Flow
+        {
+            "name": "Execute_Join_Data_Flow",
+            "type": "ExecuteDataFlow",
+            "dependsOn": [
+                {"activity": "Copy_SQL_Customer_Data", "dependencyConditions": ["Succeeded"]},
+                {"activity": "Copy_Cosmos_Order_Data", "dependencyConditions": ["Succeeded"]},
+                {"activity": "ForEach_Customer_For_API_Call", "dependencyConditions": ["Succeeded"]}
+            ],
+            "typeProperties": {
+                "dataflow": {
+                    "referenceName": "df_join_multi_source",
+                    "type": "DataFlowReference"
+                },
+                "compute": {
+                    "coreCount": 8,
+                    "computeType": "General"
+                }
+            }
+        },
+        
+        // 5. Load to final destination
+        {
+            "name": "Copy_To_Data_Warehouse",
+            "type": "Copy",
+            "dependsOn": [
+                {"activity": "Execute_Join_Data_Flow", "dependencyConditions": ["Succeeded"]}
+            ],
+            "typeProperties": {
+                "source": {
+                    "type": "DelimitedTextSource",
+                    "storeSettings": {
+                        "type": "AzureBlobFSReadSettings",
+                        "folderPath": "curated/customer_360"
+                    }
+                },
+                "sink": {
+                    "type": "AzureSqlSink",
+                    "preCopyScript": "TRUNCATE TABLE analytics.Customer360",
+                    "tableOption": "autoCreate"
+                }
+            }
+        }
+    ]
+}
+```
+
+**Data Flow df_join_multi_source:**
+```
+Source1 (customers.csv) 
+    → Select (CustomerID, CustomerName, Region)
+    
+Source2 (orders.csv)
+    → Select (customerId, orderId, orderTotal)
+    → Aggregate (Group by customerId, sum(orderTotal) as TotalSpend, count() as OrderCount)
+    
+Source3 (preferences/*.json)
+    → Flatten (preferences array)
+    → Select (customerId, preferenceCategory, preferenceValue)
+    
+Join1: customers ← orders (on CustomerID)
+    → Select (all from left, TotalSpend, OrderCount from right)
+    
+Join2: Result of Join1 ← preferences (on CustomerID)
+    → Select (all from left, preferenceCategory, preferenceValue from right)
+    
+Sink: curated/customer_360/
+```
+
+---
+
+### 46.6 Real-Time and Streaming Scenarios
+
+**Scenario 11: Near Real-Time File Processing**
+
+**Question**: Files arrive at random times throughout the day. You need to process them within 2 minutes of arrival. How do you implement this?
+
+**Answer**:
+```json
+// Use Storage Event Trigger
+{
+    "name": "tr_real_time_file_processing",
+    "properties": {
+        "type": "BlobEventsTrigger",
+        "typeProperties": {
+            "blobPathBeginsWith": "/incoming/containers/blobs/",
+            "blobPathEndsWith": ".json",
+            "ignoreEmptyBlobs": true,
+            "scope": "/subscriptions/xxx/.../storageAccounts/starealagent",
+            "events": ["Microsoft.Storage.BlobCreated"]
+        },
+        "pipelines": [
+            {
+                "pipelineReference": {
+                    "referenceName": "pl_process_real_time_file",
+                    "type": "PipelineReference"
+                },
+                "parameters": {
+                    "pFileName": "@triggerBody().fileName",
+                    "pFolderPath": "@triggerBody().folderPath",
+                    "pEventTime": "@triggerBody().eventTime"
+                }
+            }
+        ]
+    }
+}
+
+// Pipeline with optimized processing
+{
+    "name": "pl_process_real_time_file",
+    "activities": [
+        // Validate file immediately
+        {
+            "name": "Validate_JSON_Structure",
+            "type": "Validation",
+            "typeProperties": {
+                "dataset": {
+                    "referenceName": "ds_json_file",
+                    "type": "DatasetReference",
+                    "parameters": {
+                        "pFilePath": "@concat(pipeline().parameters.pFolderPath, '/', pipeline().parameters.pFileName)"
+                    }
+                },
+                "timeout": "00:00:30",
+                "fieldList": ["exists", "size"]
+            }
+        },
+        
+        // Process with minimal latency
+        {
+            "name": "Execute_Data_Flow",
+            "type": "ExecuteDataFlow",
+            "dependsOn": [
+                {"activity": "Validate_JSON_Structure", "dependencyConditions": ["Succeeded"]}
+            ],
+            "typeProperties": {
+                "dataflow": {
+                    "referenceName": "df_real_time_processing",
+                    "type": "DataFlowReference"
+                },
+                "compute": {
+                    "coreCount": 8,
+                    "computeType": "ComputeOptimized"
+                },
+                "staging": {
+                    "linkedService": {
+                        "referenceName": "ls_staging_fast_storage",
+                        "type": "LinkedServiceReference"
+                    }
+                }
+            }
+        },
+        
+        // Stream to downstream systems
+        {
+            "name": "Publish_To_Event_Hub",
+            "type": "Copy",
+            "dependsOn": [
+                {"activity": "Execute_Data_Flow", "dependencyConditions": ["Succeeded"]}
+            ],
+            "typeProperties": {
+                "source": {
+                    "type": "DelimitedTextSource"
+                },
+                "sink": {
+                    "type": "EventHubSink"
+                }
+            }
+        }
+    ]
+}
+```
+
+**Performance Characteristics:**
+- Event detection: <5 seconds (Event Grid)
+- Pipeline start: <10 seconds
+- Validation: <30 seconds
+- Processing: <60 seconds
+- Total latency: **<2 minutes** from file arrival to completion
+
+---
+
+
+## 47. Most Asked Azure Data Factory Interview Questions (2026)
+
+### 47.1 Fundamental Concepts
+
+**Q1: What is Azure Data Factory and why do we need it?**
+
+**Answer:**
+Azure Data Factory is Microsoft's cloud-based ETL (Extract, Transform, Load) and data integration service that orchestrates the movement and transformation of data between various data stores and compute services.
+
+**Why We Need It:**
+- **Data Integration**: Connect 90+ built-in connectors for on-premises and cloud data sources
+- **No Code ETL**: Visual interface eliminates need for complex coding
+- **Scalability**: Handles massive data volumes with auto-scaling
+- **Cost-Effective**: Pay-per-use pricing model (no infrastructure management)
+- **Automation**: Schedule and orchestrate complex data workflows
+- **Hybrid Support**: Works with on-premises, cloud, and hybrid scenarios
+
+**Use Cases:**
+- Migrating data from on-premises to cloud
+- Building data lakes and data warehouses
+- Real-time data processing
+- ETL/ELT operations
+- Data orchestration across multiple systems
+
+---
+
+**Q2: Explain the core components of Azure Data Factory.**
+
+**Answer:**
+1. **Pipeline**: Logical grouping of activities that perform a task
+2. **Activity**: Processing step within a pipeline (Copy, Data Flow, Stored Procedure, etc.)
+3. **Dataset**: Named view of data pointing to source/sink
+4. **Linked Service**: Connection string to data store or compute resource
+5. **Integration Runtime**: Compute infrastructure to execute activities
+6. **Trigger**: Determines when pipeline execution should happen
+
+**Relationship:**
+```
+Factory
+ └── Linked Service (defines connection)
+      └── Dataset (references linked service)
+           └── Activity (uses dataset)
+                └── Pipeline (contains activities)
+                     └── Trigger (executes pipeline)
+```
+
+---
+
+**Q3: What is Integration Runtime? Explain its types.**
+
+**Answer:**
+Integration Runtime (IR) is the compute infrastructure used by ADF to provide data integration capabilities across different network environments.
+
+**Types:**
+
+**1. Azure Integration Runtime (Azure IR):**
+- **Purpose**: Cloud-to-cloud data movement and transformation
+- **Use Cases**: 
+  - Copy between Azure services
+  - Dispatch activities to compute services (HDInsight, SQL Server)
+  - Execute Data Flows
+- **Benefits**: Fully managed, auto-scaling, no maintenance
+- **Location**: Auto-resolve or specific Azure region
+
+**2. Self-Hosted Integration Runtime (SHIR):**
+- **Purpose**: Access on-premises/private network resources
+- **Installation**: Installed on on-premises server or VM
+- **Use Cases**:
+  - Copy from on-premises SQL Server to cloud
+  - Access resources behind firewall/VNet
+  - Execute SSIS packages on-premises
+- **Benefits**: Secure, supports on-premises authentication
+- **High Availability**: Can install on multiple nodes
+
+**3. Azure-SSIS Integration Runtime:**
+- **Purpose**: Execute SSIS packages in cloud
+- **Use Cases**: Lift-and-shift SSIS workloads to Azure
+- **Benefits**: 
+  - Managed environment for SSIS
+  - Scale out package execution
+  - Integration with Azure services
+- **Requirements**: SSIS catalog (SSISDB) in Azure SQL or SQL MI
+
+---
+
+**Q4: What's the difference between Dataset and Linked Service?**
+
+**Answer:**
+
+| Aspect | Linked Service | Dataset |
+|--------|---------------|---------|
+| **Purpose** | Connection information | Data structure/location |
+| **Analogy** | Connection string | Table/file pointer |
+| **Contains** | Server, auth, credentials | Schema, folder, file name |
+| **Scope** | Reusable across datasets | Specific to data structure |
+| **Example** | Azure SQL Server connection | "Customers" table in that server |
+
+**Example:**
+```json
+// Linked Service (connection)
+{
+    "name": "ls_azure_sql_salesdb",
+    "type": "AzureSqlDatabase",
+    "typeProperties": {
+        "connectionString": "Server=tcp:sql-prod.database.windows.net;Database=SalesDB",
+        "password": {...}
+    }
+}
+
+// Dataset (data location using linked service)
+{
+    "name": "ds_customers_table",
+    "type": "AzureSqlTable",
+    "linkedServiceName": {
+        "referenceName": "ls_azure_sql_salesdb",
+        "type": "LinkedServiceReference"
+    },
+    "typeProperties": {
+        "schema": "dbo",
+        "table": "Customers"
+    }
+}
+```
+
+---
+
+### 47.2 Activities and Pipeline Execution
+
+**Q5: What are the different types of activities in ADF?**
+
+**Answer:**
+
+**1. Data Movement Activities:**
+- **Copy Activity**: Move data between stores (most common)
+- **Data Flow**: Visually design transformations
+
+**2. Data Transformation Activities:**
+- **Mapping Data Flow**: Code-free transformations (Spark-based)
+- **Wrangling Data Flow**: Power Query-based transformations
+- **HDInsight Activities**: Hive, Pig, MapReduce, Spark
+- **Databricks Activities**: Notebook, Jar, Python
+- **Azure Functions**: Execute custom code
+- **Stored Procedure**: Execute SQL stored procedures
+- **Custom Activity**: Execute custom .NET code
+
+**3. Control Flow Activities:**
+- **If Condition**: Conditional branching
+- **ForEach**: Iterate over collection
+- **Until**: Loop until condition is true
+- **Switch**: Multiple conditional paths
+- **Wait**: Pause execution
+- **Execute Pipeline**: Call another pipeline
+- **Get Metadata**: Retrieve file/folder properties
+- **Lookup**: Query data and use in expressions
+- **Web Activity**: Call REST APIs
+- **Validation**: Check if file/folder exists
+- **Delete**: Delete files/folders
+- **Set Variable**: Set pipeline variable value
+- **Append Variable**: Add to array variable
+
+---
+
+**Q6: Explain Copy Activity and its performance optimization.**
+
+**Answer:**
+
+**Copy Activity** is the workhorse of ADF for data movement between supported sources and sinks.
+
+**Key Features:**
+- Supports 90+ connectors
+- Schema mapping
+- Data type conversion
+- Fault tolerance
+- Performance optimization
+
+**Performance Optimization Techniques:**
+
+**1. Data Integration Units (DIUs):**
+```json
+{
+    "dataIntegrationUnits": 128  // Default: 4, Max: 256
+}
+```
+- Each DIU = 4 vCores + 16GB RAM
+- Higher DIUs = faster copy for large datasets
+- Auto-tuning available
+
+**2. Parallel Copies:**
+```json
+{
+    "parallelCopies": 32  // Default: varies by scenario
+}
+```
+- Splits data into parallel streams
+- Effective for large files or partitioned data
+
+**3. Staged Copy:**
+```json
+{
+    "enableStaging": true,
+    "stagingSettings": {
+        "linkedServiceName": {...},
+        "path": "staging",
+        "enableCompression": true
+    }
+}
+```
+- Uses intermediate Blob/ADLS storage
+- Enables compression for network transfer
+- Better for cross-region copies
+
+**4. Source Partitioning:**
+```json
+{
+    "source": {
+        "type": "AzureSqlSource",
+        "partitionOption": "PhysicalPartitionsOfTable"
+    }
+}
+```
+- Physical: Use table's physical partitions
+- Dynamic Range: Partition by column range
+
+**5. Max Concurrent Connections:**
+```json
+{
+    "source": {
+        "maxConcurrentConnections": 32
+    }
+}
+```
+
+**Real-World Example:**
+```
+Scenario: Copy 500GB from Azure SQL to ADLS
+Without optimization: 3-4 hours
+With optimization (DIUs=128, parallelCopies=32, staging): 20-25 minutes
+```
+
+---
+
+**Q7: What is the difference between Parameters and Variables?**
+
+**Answer:**
+
+| Aspect | Parameters | Variables |
+|--------|-----------|-----------|
+| **Mutability** | Immutable (read-only) | Mutable (can change) |
+| **Set By** | Caller (trigger, execute pipeline, debug) | Activities within pipeline |
+| **Scope** | Pipeline level | Pipeline level |
+| **Purpose** | Pass inputs to pipeline | Store intermediate state |
+| **Use Case** | TableName, LoadDate, Environment | Counters, flags, dynamic values |
+| **Access** | `@pipeline().parameters.pName` | `@variables('vName')` |
+| **Change During Execution** | No | Yes (Set/Append Variable) |
+
+**Example:**
+```json
+{
+    "name": "pl_example",
+    "properties": {
+        "parameters": {
+            "pTableName": {
+                "type": "string",
+                "defaultValue": "Customers"
+            }
+        },
+        "variables": {
+            "vCounter": {
+                "type": "int",
+                "defaultValue": 0
+            },
+            "vProcessedFiles": {
+                "type": "array",
+                "defaultValue": []
+            }
+        },
+        "activities": [
+            {
+                "name": "Set_Counter",
+                "type": "SetVariable",
+                "typeProperties": {
+                    "variableName": "vCounter",
+                    "value": {
+                        "value": "@add(variables('vCounter'), 1)",
+                        "type": "Expression"
+                    }
+                }
+            },
+            {
+                "name": "Copy_Data",
+                "type": "Copy",
+                "typeProperties": {
+                    "source": {
+                        "sqlReaderQuery": {
+                            "value": "@concat('SELECT * FROM ', pipeline().parameters.pTableName)",
+                            "type": "Expression"
+                        }
+                    }
+                }
+            }
+        ]
+    }
+}
+```
+
+---
+
+### 47.3 Triggers and Scheduling
+
+**Q8: What are the different types of triggers in ADF?**
+
+**Answer:**
+
+**1. Schedule Trigger:**
+- Runs on wall-clock calendar schedule
+- Supports periodic intervals and recurrence patterns
+- Fire-and-forget (doesn't wait for completion)
+- Many-to-many relationship with pipelines
+- **Use Case**: Daily batch jobs, hourly reports
+
+**2. Tumbling Window Trigger:**
+- Fires at periodic intervals with state retention
+- Waits for pipeline completion
+- Supports backfill, retry, dependencies
+- One-to-one relationship with pipeline
+- 100% reliable (no gaps)
+- **Use Case**: Critical ETL, incremental loads
+
+**3. Storage Event Trigger:**
+- Reacts to Blob Storage events (file created/deleted)
+- Near real-time processing
+- Filters by path patterns and file extensions
+- **Use Case**: Process files as they arrive
+
+**4. Custom Event Trigger:**
+- Reacts to custom Event Grid topics
+- Event-driven architectures
+- **Use Case**: Business event processing
+
+**Comparison:**
+```
+Schedule: "Run every day at 2 AM"
+Tumbling Window: "Process each day's data (yesterday, today, tomorrow...) with no gaps"
+Storage Event: "Process file when it arrives"
+Custom Event: "React when OrderPlaced event occurs"
+```
+
+---
+
+**Q9: How does Schedule Trigger differ from Tumbling Window Trigger?**
+
+**Answer:**
+
+| Feature | Schedule Trigger | Tumbling Window Trigger |
+|---------|-----------------|-------------------------|
+| **State** | Stateless | Stateful |
+| **Backfill** | ❌ Not supported | ✅ Supported |
+| **Retry** | ❌ Not supported | ✅ Automatic retry policy |
+| **Gaps** | ⚠️ Possible (less reliable) | ✅ No gaps (100% reliable) |
+| **Wait for Completion** | ❌ Fire-and-forget | ✅ Waits and monitors |
+| **Dependencies** | ❌ Not supported | ✅ Trigger dependencies |
+| **Concurrency** | ❌ No control | ✅ maxConcurrency (1-50) |
+| **Pipeline Relationship** | Many-to-many | One-to-one |
+| **System Variables** | scheduledTime, startTime | windowStartTime, windowEnd Time |
+| **Use Case** | Simple scheduling | Critical data processing |
+
+**When to Use Which:**
+
+**Schedule Trigger:**
+- Non-critical batch jobs
+- Ad-hoc reports
+- Cleanup tasks
+- Multiple pipelines from one trigger
+
+**Tumbling Window Trigger:**
+- Incremental data loads
+- Data with time windows (hourly sales, daily orders)
+- When gaps are not acceptable
+- Need to backfill historical data
+- Pipeline dependencies required
+
+**Example:**
+```
+Tumbling Window: Process each hour of IoT data (00:00-01:00, 01:00-02:00...)
+If service was down from 02:00-04:00, when back up, it processes those missed windows
+
+Schedule: Run every hour
+If service was down from 02:00-04:00, those runs are lost
+```
+
+---
+
+### 47.4 Data Flow and Transformations
+
+**Q10: What is Mapping Data Flow? How does it differ from Copy Activity?**
+
+**Answer:**
+
+**Mapping Data Flow:**
+- Visual, code-free transformation designer
+- Runs on Apache Spark (distributed processing)
+- Handles complex transformations (joins, aggregations, pivots)
+- Schema drift support
+- Debug mode with data preview
+
+**Copy Activity:**
+- Simple data movement
+- Limited transformations (column mapping, type conversion)
+- Optimized for throughput
+- Lower cost than Data Flow
+
+**When to Use Data Flow:**
+- Complex business logic
+- Multiple joins
+- Aggregations, pivots, unpivots
+- Window functions
+- Slowly Changing Dimensions
+- Data quality rules
+
+**When to Use Copy Activity:**
+- Simple source-to-sink movement
+- Format conversions
+- Basic column mapping
+- High-throughput requirements
+
+**Transformations in Data Flow:**
+```
+Source → Filter → Derived Column → Join → Aggregate → Select → Sink
+
+Example: Customer 360 View
+- Source1: Customer data
+- Source2: Order data
+- Source3: Support tickets
+- Join: Merge on CustomerID
+- Aggregate: Total spend, ticket count
+- Derived Column: Customer lifetime value
+- Sink: Analytics database
+```
+
+---
+
+### 47.5 Advanced Topics
+
+**Q11: How do you implement incremental loads in ADF?**
+
+**Answer:**
+
+**Watermark Pattern** (Most Common):
+
+**Components:**
+1. Control table to store last processed timestamp
+2. Lookup activity to get watermark
+3. Copy with filter based on watermark
+4. Update watermark after successful copy
+
+**Implementation:**
+```sql
+-- Step 1: Control Table
+CREATE TABLE control.Watermark (
+    TableName NVARCHAR(100) PRIMARY KEY,
+    WatermarkValue DATETIME
+);
+
+INSERT INTO control.Watermark VALUES ('Orders', '1900-01-01');
+```
+
+```json
+// Step 2: Pipeline
+{
+    "activities": [
+        {
+            "name": "Get_Last_Watermark",
+            "type": "Lookup",
+            "typeProperties": {
+                "source": {
+                    "sqlReaderQuery": "SELECT WatermarkValue FROM control.Watermark WHERE TableName = 'Orders'"
+                }
+            }
+        },
+        {
+            "name": "Get_Current_Watermark",
+            "type": "Lookup",
+            "typeProperties": {
+                "source": {
+                    "sqlReaderQuery": "SELECT MAX(ModifiedDate) as NewWatermark FROM dbo.Orders"
+                }
+            }
+        },
+        {
+            "name": "Copy_Incremental",
+            "type": "Copy",
+            "typeProperties": {
+                "source": {
+                    "sqlReaderQuery": "SELECT * FROM dbo.Orders WHERE ModifiedDate > '@{activity('Get_Last_Watermark').output.firstRow.WatermarkValue}' AND ModifiedDate <= '@{activity('Get_Current_Watermark').output.firstRow.NewWatermark}'"
+                }
+            }
+        },
+        {
+            "name": "Update_Watermark",
+            "type": "StoredProcedure",
+            "dependsOn": [
+                {"activity": "Copy_Incremental", "dependencyConditions": ["Succeeded"]}
+            ],
+            "typeProperties": {
+                "storedProcedureName": "control.usp_UpdateWatermark",
+                "parameters": {
+                    "tableName": "Orders",
+                    "newWatermark": "@activity('Get_Current_Watermark').output.firstRow.NewWatermark"
+                }
+            }
+        }
+    ]
+}
+```
+
+---
+
+**Q12: How do you handle errors and retries in ADF pipelines?**
+
+**Answer:**
+
+**1. Activity-Level Retry:**
+```json
+{
+    "name": "Copy_With_Retry",
+    "type": "Copy",
+    "policy": {
+        "timeout": "7.00:00:00",
+        "retry": 3,
+        "retryIntervalInSeconds": 300
+    }
+}
+```
+
+**2. Dependency Conditions:**
+```json
+{
+    "name": "On_Success_Activity",
+    "type": "Copy",
+    "dependsOn": [
+        {
+            "activity": "Previous_Activity",
+            "dependencyConditions": ["Succeeded"]
+        }
+    ]
+},
+{
+    "name": "On_Failure_Activity",
+    "type": "WebActivity",
+    "dependsOn": [
+        {
+            "activity": "Previous_Activity",
+            "dependencyConditions": ["Failed"]
+        }
+    ]
+}
+```
+
+**3. Try-Catch Pattern with Variables:**
+```json
+{
+    "activities": [
+        {
+            "name": "Try_Copy",
+            "type": "Copy"
+        },
+        {
+            "name": "Set_Success_Flag",
+            "type": "SetVariable",
+            "dependsOn": [
+                {"activity": "Try_Copy", "dependencyConditions": ["Succeeded"]}
+            ],
+            "typeProperties": {
+                "variableName": "vStatus",
+                "value": "Success"
+            }
+        },
+        {
+            "name": "Set_Error_Message",
+            "type": "SetVariable",
+            "dependsOn": [
+                {"activity": "Try_Copy", "dependencyConditions": ["Failed"]}
+            ],
+            "typeProperties": {
+                "variableName": "vError",
+                "value": "@activity('Try_Copy').output.errors[0].Message"
+            }
+        },
+        {
+            "name": "Log_Error",
+            "type": "SqlServerStoredProcedure",
+            "dependsOn": [
+                {"activity": "Set_Error_Message", "dependencyConditions": ["Succeeded"]}
+            ],
+            "typeProperties": {
+                "storedProcedureName": "control.usp_LogError",
+                "storedProcedureParameters": {
+                    "errorMessage": "@variables('vError')"
+                }
+            }
+        }
+    ]
+}
+```
+
+**4. ForEach with Error Handling:**
+```json
+{
+    "name": "ForEach_File",
+    "type": "ForEach",
+    "typeProperties": {
+        "items": "@activity('Get_Files').output.childItems",
+        "activities": [
+            {
+                "name": "Process_File",
+                "type": "Copy"
+            },
+            {
+                "name": "Move_To_Processed",
+                "type": "Copy",
+                "dependsOn": [
+                    {"activity": "Process_File", "dependencyConditions": ["Succeeded"]}
+                ]
+            },
+            {
+                "name": "Move_To_Error",
+                "type": "Copy",
+                "dependsOn": [
+                    {"activity": "Process_File", "dependencyConditions": ["Failed"]}
+                ]
+            }
+        ]
+    }
+}
+// ForEach continues even if individual items fail
+```
+
+**5. Tumbling Window Retry:**
+```json
+{
+    "type": "TumblingWindowTrigger",
+    "typeProperties": {
+        "frequency": "Hour",
+        "interval": 1,
+        "retryPolicy": {
+            "count": 3,
+            "intervalInSeconds": 600
+        }
+    }
+}
+```
+
+---
+
+**Q13: What is the difference between Lookup and Get Metadata activities?**
+
+**Answer:**
+
+| Aspect | Lookup | Get Metadata |
+|--------|--------|--------------|
+| **Purpose** | Query and return data from dataset | Retrieve metadata about file/folder |
+| **Returns** | Data rows | Metadata properties |
+| **Row Limit** | First row only OR all rows (up to 5000) | N/A |
+| **Use Cases** | Get config values, watermarks, control data | Check if file exists, get size, modified date, list files |
+| **Data Sources** | Databases, files | Files and folders |
+| **Output** | `firstRow` or `value` array | `exists`, `itemName`, `size`, `lastModified`, `childItems`, etc. |
+
+**Lookup Example:**
+```json
+{
+    "name": "Lookup_Config",
+    "type": "Lookup",
+    "typeProperties": {
+        "source": {
+            "type": "AzureSqlSource",
+            "sqlReaderQuery": "SELECT * FROM control.Config WHERE IsActive = 1"
+        },
+        "firstRowOnly": false
+    }
+}
+// Output: {"value": [{...}, {...}]}
+// Access: @activity('Lookup_Config').output.value
+```
+
+**Get Metadata Example:**
+```json
+{
+    "name": "Get_Metadata",
+    "type": "GetMetadata",
+    "typeProperties": {
+        "dataset": {
+            "referenceName": "ds_incoming_folder",
+            "type": "DatasetReference"
+        },
+        "fieldList": ["exists", "itemName", "lastModified", "childItems"]
+    }
+}
+// Output: {"exists": true, "itemName": "folder1", "lastModified": "2026-04-26...", "childItems": [...]}
+// Access: @activity('Get_Metadata').output.childItems
+```
+
+**When to Use:**
+- **Lookup**: Get configuration, watermarks, table lists from database
+- **Get Metadata**: Validate files exist, get file list, check file age
+
+---
+
+**Q14: How do you implement CI/CD for ADF?**
+
+**Answer:**
+
+**Git Integration Approach:**
+
+**Step 1: Configure Git in ADF**
+- Connect ADF to Azure DevOps or GitHub
+- Select collaboration branch (e.g., `main`)
+- Set publish branch (e.g., `adf_publish`)
+- Working branch for development
+
+**Step 2: Development Workflow**
+```
+1. Developer creates feature branch
+2. Makes changes in ADF UI
+3. Changes saved to feature branch (JSON files)
+4. Create Pull Request to main branch
+5. Review and merge
+6. Publish from main branch (creates ARM templates in adf_publish)
+```
+
+**Step 3: Deployment Pipeline**
+```yaml
+# Azure DevOps YAML Pipeline
+trigger:
+  branches:
+    include:
+      - adf_publish
+
+pool:
+  vmImage: 'windows-latest'
+
+steps:
+- task: AzurePowerShell@5
+  displayName: 'Stop ADF Triggers'
+  inputs:
+    azureSubscription: 'Azure-Prod'
+    ScriptType: 'InlineScript'
+    Inline: |
+      $triggers = Get-AzDataFactoryV2Trigger -ResourceGroupName 'rg-prod' -DataFactoryName 'adf-prod'
+      foreach ($trigger in $triggers) {
+        Stop-AzDataFactoryV2Trigger -ResourceGroupName 'rg-prod' -DataFactoryName 'adf-prod' -Name $trigger.Name -Force
+      }
+
+- task: AzureResourceManagerTemplateDeployment@3
+  displayName: 'Deploy ADF ARM Template'
+  inputs:
+    azureResourceManagerConnection: 'Azure-Prod'
+    subscriptionId: '$(subscriptionId)'
+    resourceGroupName: 'rg-prod'
+    location: 'East US'
+    templateLocation: 'Linked artifact'
+    csmFile: '$(Build.Repository.LocalPath)/ARMTemplateForFactory.json'
+    csmParametersFile: '$(Build.Repository.LocalPath)/ARMTemplateParametersForFactory.json'
+    overrideParameters: '-factoryName "adf-prod" -ls_azure_sql_connectionString "$(sqlConnectionString)"'
+
+- task: AzurePowerShell@5
+  displayName: 'Start ADF Triggers'
+  inputs:
+    azureSubscription: 'Azure-Prod'
+    ScriptType: 'InlineScript'
+    Inline: |
+      $triggers = Get-AzDataFactoryV2Trigger -ResourceGroupName 'rg-prod' -DataFactoryName 'adf-prod'
+      foreach ($trigger in $triggers) {
+        Start-AzDataFactoryV2Trigger -ResourceGroupName 'rg-prod' -DataFactoryName 'adf-prod' -Name $trigger.Name -Force
+      }
+```
+
+**Step 4: Environment-Specific Parameters**
+```json
+// ARMTemplateParametersForFactory-DEV.json
+{
+    "factoryName": "adf-dev",
+    "ls_azure_sql_connectionString": "Server=sql-dev.database.windows.net;..."
+}
+
+// ARMTemplateParametersForFactory-PROD.json
+{
+    "factoryName": "adf-prod",
+    "ls_azure_sql_connectionString": "Server=sql-prod.database.windows.net;..."
+}
+```
+
+**Best Practices:**
+1. Use Global Parameters for environment-specific values
+2. Stop triggers before deployment
+3. Deploy ARM templates with overridden parameters
+4. Start triggers after deployment
+5. Use separate parameter files per environment
+6. Test in lower environments first
+7. Maintain naming conventions
+8. Use Key Vault for secrets
+
+---
+
+**Q15: How do you monitor and troubleshoot ADF pipelines?**
+
+**Answer:**
+
+**1. Monitor Tab in ADF:**
+```
+Monitor → Pipeline runs
+- View all pipeline executions
+- Filter by status, date, pipeline name
+- Drill into activity runs
+- View input/output of each activity
+- Check error messages
+```
+
+**2. Activity Run Details:**
+- **Input**: Parameters passed to activity
+- **Output**: Results from activity (rows copied, errors, etc.)
+- **Duration**: Execution time
+- **Status**: Succeeded, Failed, In Progress, Cancelled
+
+**3. Logging:**
+```json
+{
+    "name": "Copy_With_Logging",
+    "type": "Copy",
+    "typeProperties": {
+        "enableLogging": true,
+        "logSettings": {
+            "enableCopyActivityLog": true,
+            "copyActivityLogSettings": {
+                "logLevel": "Info",
+                "enableReliableLogging": true
+            },
+            "logLocationSettings": {
+                "linkedServiceName": {
+                    "referenceName": "ls_logging_storage",
+                    "type": "LinkedServiceReference"
+                },
+                "path": "logs/copy-activity"
+            }
+        }
+    }
+}
+```
+
+**4. Azure Monitor Integration:**
+```powershell
+# Set up diagnostic settings
+Set-AzDiagnosticSetting -ResourceId "/subscriptions/.../Microsoft.DataFactory/factories/adf-prod" `
+    -WorkspaceId "/subscriptions/.../Microsoft.OperationalInsights/workspaces/log-analytics" `
+    -Enabled $true `
+    -Category "PipelineRuns", "TriggerRuns", "ActivityRuns"
+```
+
+**5. Alerts:**
+```json
+// Create alert for failed pipeline runs
+{
+    "condition": {
+        "allOf": [
+            {
+                "field": "category",
+                "equals": "PipelineRuns"
+            },
+            {
+                "field": "status",
+                "equals": "Failed"
+            }
+        ]
+    },
+    "actions": [
+        {
+            "actionGroupId": "/subscriptions/.../actionGroups/adf-alerts"
+        }
+    ]
+}
+```
+
+**6. Troubleshooting Steps:**
+```
+1. Check pipeline run status in Monitor tab
+2. Drill into failed activity
+3. Review error message in output
+4. Check activity input for incorrect parameters
+5. Validate dataset and linked service configuration
+6. Test connectivity (Test Connection in linked service)
+7. Check Integration Runtime health
+8. Review activity logs if logging enabled
+9. Check Azure Monitor logs for detailed diagnostics
+10. Use Debug mode to step through pipeline
+```
+
+**7. Common Issues:**
+- **Timeout**: Increase timeout in activity policy
+- **Connectivity**: Check firewall, VNet, SHIR
+- **Permissions**: Verify RBAC, SAS token, Managed Identity
+- **Data Issues**: Check schema mismatch, null values
+- **Resource Limits**: Check DIUs, parallel copies, concurrency
+
+---
 
