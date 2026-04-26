@@ -25,6 +25,22 @@
 | 14 | [Interview Q&A — Advanced](#14-interview-qa--advanced) | 20 advanced questions |
 | 15 | [Scenario-Based Questions](#15-scenario-based-questions) | 15 real-world design scenarios |
 | 16 | [Quick Reference Cheat Sheet](#16-quick-reference-cheat-sheet) | Tables, states, macros |
+| 17 | [Custom Operators & Hooks](#17-custom-operators--hooks) | BaseOperator, template_fields, custom sensors, hooks |
+| 18 | [Airflow Plugins](#18-airflow-plugins) | Plugin registration, listener plugins |
+| 19 | [RBAC & Security](#19-rbac--security) | Roles, DAG-level access, security best practices |
+| 20 | [Configuration Deep Dive](#20-airflow-configuration-deep-dive) | airflow.cfg, concurrency hierarchy, tuning checklist |
+| 21 | [Managed Airflow Services](#21-managed-airflow-services) | MWAA, Cloud Composer, Astronomer |
+| 22 | [Airflow 1.x → 2.x Migration](#22-airflow-1x--2x-migration) | Key differences, migration checklist |
+| 23 | [Setup & Teardown Tasks](#23-setup--teardown-tasks-airflow-27) | Infrastructure lifecycle, guaranteed cleanup |
+| 24 | [Custom Timetables](#24-custom-timetables-airflow-22) | Business day, fiscal calendar scheduling |
+| 25 | [Priority Weights & Queues](#25-priority-weights--task-queues) | weight_rule, Celery queue routing |
+| 26 | [Monitoring & Observability](#26-monitoring--observability) | StatsD, Prometheus, OpenLineage |
+| 27 | [Integration: dbt, Spark, Databricks](#27-integration-guide-dbt-spark-databricks) | Integration patterns, deferrable usage |
+| 28 | [Cluster Policies](#28-cluster-policies) | Enforce organizational standards |
+| 29 | [DAG Lifecycle & Scheduler Internals](#29-dag-lifecycle--scheduler-internals) | Scheduler loop, LocalTaskJob, state machine |
+| 30 | [Interview Q&A — Expert Level](#30-interview-qa--expert-level) | Q61–Q90, advanced concepts |
+| 31 | [Additional Scenarios (16-25)](#31-additional-scenario-based-questions) | ML pipelines, multi-tenant, cost optimization |
+| 32 | [Updated Quick Reference](#32-updated-quick-reference-cheat-sheet) | Imports, config reference, interview checklist |
 
 ---
 
@@ -2249,5 +2265,2692 @@ Step 8: Fix → redeploy → clear the failed task → let it retry
 
 ---
 
+## 17. Custom Operators & Hooks
+
+### 17.1 Why Create a Custom Operator?
+
+Built-in operators cover common cases, but real-world pipelines often need custom logic. Custom operators:
+- Encapsulate reusable business logic
+- Are testable, maintainable, and shareable across teams
+- Can be published as Python packages or added to `plugins/`
+
+### 17.2 Anatomy of a Custom Operator
+
+```python
+# plugins/operators/my_api_operator.py
+from airflow.models.baseoperator import BaseOperator
+from airflow.utils.decorators import apply_defaults
+
+class MyAPIOperator(BaseOperator):
+    """
+    Calls a custom internal API and returns the JSON response.
+    
+    :param endpoint: The API endpoint path (e.g., '/data/export')
+    :param method: HTTP method (default: GET)
+    :param conn_id: Airflow Connection ID for the base URL + auth
+    """
+
+    # 1. Declare templateable fields (Jinja will render these)
+    template_fields = ('endpoint', 'method')
+
+    # 2. Optional: customize UI appearance
+    ui_color = '#4CAF50'
+    ui_fgcolor = '#FFFFFF'
+
+    # 3. Constructor — initialize parameters ONLY (no heavy I/O here!)
+    def __init__(
+        self,
+        endpoint: str,
+        method: str = 'GET',
+        conn_id: str = 'my_api_default',
+        **kwargs
+    ):
+        super().__init__(**kwargs)   # ← ALWAYS call super().__init__
+        self.endpoint = endpoint
+        self.method = method
+        self.conn_id = conn_id
+
+    # 4. execute() — this is what runs when the task executes
+    def execute(self, context):
+        from airflow.providers.http.hooks.http import HttpHook
+
+        hook = HttpHook(method=self.method, http_conn_id=self.conn_id)
+        self.log.info(f"Calling API: {self.endpoint}")
+        response = hook.run(self.endpoint)
+        response.raise_for_status()
+        result = response.json()
+        self.log.info(f"API returned: {result}")
+        return result  # auto-pushed to XCom as 'return_value'
+```
+
+```python
+# Using the custom operator in a DAG
+from operators.my_api_operator import MyAPIOperator
+
+with DAG('api_pipeline', ...) as dag:
+    fetch_data = MyAPIOperator(
+        task_id='fetch_sales_data',
+        endpoint='/api/sales/{{ ds }}',   # Jinja works because template_fields
+        conn_id='sales_api'
+    )
+```
+
+**Critical Rules for Custom Operators:**
+
+```
+✅ DO:
+  - Only put configuration in __init__
+  - All heavy logic goes in execute()
+  - Use self.log (not print) for logging
+  - Call super().__init__(**kwargs) first
+  - Declare template_fields for Jinja support
+  - Use Hooks for external connections
+
+❌ DON'T:
+  - Open DB connections in __init__ (runs every parse cycle!)
+  - Make API calls in __init__
+  - Import heavy libraries at top-level of DAG file
+  - Hardcode credentials inside the operator
+```
+
+**Operator Lifecycle Diagram:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│                  OPERATOR LIFECYCLE                         │
+│                                                             │
+│  [Scheduler parses DAG] ──► __init__() called               │
+│    (every few seconds)       (lightweight config only!)     │
+│                                                             │
+│  [Task ready to run]  ──► execute(context) called           │
+│    (once per task run)       (heavy logic here)             │
+│                                                             │
+│  execute() returns value ──► auto XCom push                 │
+│  execute() raises exception ──► task fails, retry if set    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 17.3 Custom Sensor
+
+```python
+# plugins/sensors/my_database_sensor.py
+from airflow.sensors.base import BaseSensorOperator
+
+class DatabaseRowSensor(BaseSensorOperator):
+    """
+    Waits until a specific row appears in a database table.
+    """
+    template_fields = ('table', 'filter_date')
+
+    def __init__(self, table: str, filter_date: str, conn_id: str, **kwargs):
+        super().__init__(**kwargs)
+        self.table = table
+        self.filter_date = filter_date
+        self.conn_id = conn_id
+
+    def poke(self, context) -> bool:
+        """Returns True when condition is met, False to keep polling."""
+        from airflow.providers.postgres.hooks.postgres import PostgresHook
+
+        hook = PostgresHook(postgres_conn_id=self.conn_id)
+        sql = f"SELECT COUNT(*) FROM {self.table} WHERE load_date = '{self.filter_date}'"
+        count = hook.get_first(sql)[0]
+        self.log.info(f"Row count for {self.filter_date}: {count}")
+        return count > 0   # returns True → task succeeds; False → polls again
+```
+
+### 17.4 Custom Hook
+
+```python
+# plugins/hooks/my_crm_hook.py
+from airflow.hooks.base import BaseHook
+import requests
+
+class MyCRMHook(BaseHook):
+    """
+    Hook to interact with the internal CRM REST API.
+    Reads base_url and api_key from an Airflow Connection.
+    """
+    conn_name_attr = 'crm_conn_id'
+    default_conn_name = 'crm_default'
+    conn_type = 'http'
+    hook_name = 'My CRM API'
+
+    def __init__(self, crm_conn_id: str = 'crm_default'):
+        super().__init__()
+        self.crm_conn_id = crm_conn_id
+
+    def get_conn(self):
+        conn = self.get_connection(self.crm_conn_id)
+        self.base_url = f"https://{conn.host}"
+        self.api_key = conn.password
+        return requests.Session()
+
+    def get_customers(self, page: int = 1) -> list:
+        session = self.get_conn()
+        r = session.get(
+            f"{self.base_url}/api/customers",
+            headers={'Authorization': f'Bearer {self.api_key}'},
+            params={'page': page}
+        )
+        r.raise_for_status()
+        return r.json()['customers']
+```
+
+---
+
+## 18. Airflow Plugins
+
+### 18.1 What is an Airflow Plugin?
+
+A Plugin lets you extend Airflow's functionality by hooking into the plugin manager. You can add:
+- Custom operators, sensors, hooks
+- Custom views (Flask Blueprints in the Web UI)
+- Custom macros
+- Listener callbacks (observe task/DAG lifecycle events)
+
+### 18.2 Plugin Directory Structure
+
+```
+airflow_home/
+├── dags/
+│   └── my_dag.py
+├── plugins/               ← Plugin root (auto-loaded by Airflow)
+│   ├── __init__.py
+│   ├── operators/
+│   │   └── my_api_operator.py
+│   ├── sensors/
+│   │   └── my_db_sensor.py
+│   ├── hooks/
+│   │   └── my_crm_hook.py
+│   └── my_plugin.py       ← Plugin registration file
+└── config/
+    └── airflow_local_settings.py
+```
+
+### 18.3 Plugin Registration
+
+```python
+# plugins/my_plugin.py
+from airflow.plugins_manager import AirflowPlugin
+from operators.my_api_operator import MyAPIOperator
+from hooks.my_crm_hook import MyCRMHook
+
+class MyCompanyPlugin(AirflowPlugin):
+    name = "my_company_plugin"
+    operators = [MyAPIOperator]
+    hooks = [MyCRMHook]
+    macros = []          # custom Jinja macros
+    flask_blueprints = []   # custom UI pages
+```
+
+### 18.4 Listener Plugin (Observability)
+
+```python
+# plugins/audit_listener.py
+from airflow.listeners import hookimpl
+
+class AuditListener:
+    @hookimpl
+    def on_task_instance_success(self, previous_state, task_instance, session):
+        log_audit(
+            dag_id=task_instance.dag_id,
+            task_id=task_instance.task_id,
+            state='success',
+            duration=task_instance.duration
+        )
+
+    @hookimpl
+    def on_task_instance_failed(self, previous_state, task_instance, error, session):
+        log_audit(
+            dag_id=task_instance.dag_id,
+            task_id=task_instance.task_id,
+            state='failed',
+            error=str(error)
+        )
+
+# Register in plugin
+from airflow.plugins_manager import AirflowPlugin
+
+class AuditPlugin(AirflowPlugin):
+    name = "audit_plugin"
+    listeners = [AuditListener()]
+```
+
+---
+
+## 19. RBAC & Security
+
+### 19.1 Airflow Roles
+
+Airflow uses Flask-AppBuilder for RBAC (Role-Based Access Control). Built-in roles:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    AIRFLOW RBAC ROLES                       │
+│                                                             │
+│  Admin                                                      │
+│  ─────                                                      │
+│  Full access: manage users, roles, connections, variables,  │
+│  DAGs, task runs, configurations                            │
+│                                                             │
+│  Op (Operator)                                              │
+│  ──────────────                                             │
+│  Can: view/trigger/clear DAGs, manage pools/connections     │
+│  Cannot: manage users, system config                        │
+│                                                             │
+│  User                                                       │
+│  ────                                                       │
+│  Can: view DAGs, trigger/clear DAGs                         │
+│  Cannot: manage connections, variables, pools               │
+│                                                             │
+│  Viewer                                                     │
+│  ──────                                                     │
+│  Read-only: view DAGs, runs, logs                           │
+│  Cannot: trigger or modify anything                         │
+│                                                             │
+│  Public (no auth)                                           │
+│  ─────────────────                                          │
+│  Access only to public pages (if auth_backend allows)       │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 19.2 DAG-Level Access Control
+
+```python
+# Restrict which roles can access a DAG
+with DAG(
+    'sensitive_finance_dag',
+    access_control={
+        'Finance_Team': {'can_read', 'can_edit', 'can_delete'},
+        'Auditors': {'can_read'},
+    }
+) as dag:
+    ...
+```
+
+### 19.3 Security Best Practices
+
+```
+1. Authentication:
+   ├── Use OAuth2 / SSO (Azure AD, Okta, Google)
+   ├── Enable LDAP authentication
+   └── Never use the default 'admin/admin' credentials in production
+
+2. Secret Management:
+   ├── Never store secrets in DAG code or Variables directly
+   ├── Use Secrets Backends: AWS Secrets Manager, HashiCorp Vault
+   └── Rotate credentials regularly
+
+3. Network:
+   ├── Webserver behind a reverse proxy (NGINX) with HTTPS only
+   ├── Metadata DB not exposed to the public internet
+   └── Workers in private subnets
+
+4. API Security:
+   ├── Enable API authentication (basic_auth or Kerberos)
+   └── Use HTTPS for all API calls
+
+5. Audit:
+   ├── Enable Airflow audit logs
+   └── Use Listener plugins to log all task events
+```
+
+### 19.4 Webserver Authentication Configuration
+
+```ini
+# airflow.cfg
+[webserver]
+authenticate = True
+auth_backend = airflow.providers.google.common.auth_backend.google_openid
+                # or airflow.contrib.auth.backends.ldap_auth
+                # or airflow.api.auth.backend.basic_auth
+
+# For OAuth2
+[oauth]
+providers = [{'name': 'google', 'icon': 'fa-google', 
+              'token_key': 'access_token',
+              'remote_app': {...}}]
+```
+
+---
+
+## 20. Airflow Configuration Deep Dive
+
+### 20.1 Key airflow.cfg Sections
+
+```ini
+[core]
+# Total parallelism across all DAGs and tasks
+parallelism = 32
+
+# Max task instances per DAG at a time
+max_active_tasks_per_dag = 16
+
+# Max concurrent DAG runs across all DAGs
+max_active_runs_per_dag = 16
+
+# Executor class
+executor = CeleryExecutor
+
+# DAG folder location
+dags_folder = /opt/airflow/dags
+
+# Metadata DB connection string
+sql_alchemy_conn = postgresql+psycopg2://user:pass@host/airflow_db
+
+# Load example DAGs (disable in production!)
+load_examples = False
+
+[scheduler]
+# How often to parse new DAG files (seconds)
+min_file_process_interval = 30
+
+# How often to scan the DAGs folder (seconds)
+dag_dir_list_interval = 300
+
+# Zombie task detection threshold (seconds)
+scheduler_zombie_task_threshold = 300
+
+# HA: how many task instances per scheduling loop
+max_dagruns_per_loop_to_schedule = 20
+
+# How long scheduler sleeps between loops when idle
+scheduler_idle_sleep_time = 1
+
+[celery]
+# Redis or RabbitMQ broker
+broker_url = redis://redis:6379/0
+result_backend = db+postgresql://user:pass@host/airflow_db
+
+# Tasks each Celery worker can run simultaneously
+worker_concurrency = 16
+
+[logging]
+remote_logging = True
+remote_base_log_folder = s3://my-bucket/airflow-logs
+remote_log_conn_id = aws_default
+
+[secrets]
+backend = airflow.providers.amazon.aws.secrets.secrets_manager.SecretsManagerBackend
+backend_kwargs = {"connections_prefix": "airflow/connections", 
+                  "variables_prefix": "airflow/variables",
+                  "sep": "/"}
+```
+
+### 20.2 Concurrency Settings Hierarchy
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              CONCURRENCY CONTROLS (outer → inner)               │
+│                                                                 │
+│  parallelism (airflow.cfg)                                      │
+│  ─────────────────────────                                      │
+│  Global max tasks running across ALL dags at once               │
+│  Default: 32                                                    │
+│                                                                 │
+│    ↳ max_active_runs_per_dag (airflow.cfg / per DAG)            │
+│      Max simultaneous DAG runs for ONE dag                      │
+│      Default: 16                                                │
+│                                                                 │
+│        ↳ max_active_tasks_per_dag (airflow.cfg / per DAG)       │
+│          Max tasks running inside ONE DAG run                   │
+│          Default: 16                                            │
+│                                                                 │
+│              ↳ Pool slots                                       │
+│                Task-specific resource limits                    │
+│                User-configured                                  │
+│                                                                 │
+│                  ↳ worker_concurrency (Celery)                  │
+│                    Max tasks per individual worker process      │
+│                    Default: 16                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 20.3 Performance Tuning Checklist
+
+```
+Database:
+  ☐ Use PostgreSQL 12+ (not MySQL/SQLite for production)
+  ☐ Add PgBouncer connection pooler for PostgreSQL
+  ☐ Run airflow db clean periodically to purge old records
+  ☐ Add database indexes on dag_id, execution_date columns
+
+Scheduler:
+  ☐ Run 2-3 Scheduler instances (HA mode)
+  ☐ Tune min_file_process_interval (higher = less CPU on parsing)
+  ☐ Increase max_dagruns_per_loop_to_schedule for many small DAGs
+  ☐ Use DAG serialization (enabled by default in 2.x)
+  ☐ Move complex Python out of DAG files into importable modules
+
+Workers:
+  ☐ Tune worker_concurrency based on CPU/memory available
+  ☐ Use Pools to prevent resource oversubscription
+  ☐ Enable autoscaling (KEDA for K8s, ASG for EC2 Celery workers)
+
+DAG Design:
+  ☐ No top-level DB connections or API calls in DAG files
+  ☐ Use reschedule mode for all sensors
+  ☐ Use deferrable operators for long-running external jobs
+  ☐ Limit XCom payload size (< 48KB)
+```
+
+---
+
+## 21. Managed Airflow Services
+
+### 21.1 Comparison: MWAA vs Cloud Composer vs Astronomer
+
+```
+┌───────────────────────────────────────────────────────────────────────────┐
+│              MANAGED AIRFLOW SERVICES COMPARISON                          │
+├─────────────────┬──────────────┬──────────────────┬──────────────────────┤
+│ Feature         │ AWS MWAA     │ Cloud Composer   │ Astronomer           │
+│                 │ (Amazon)     │ (GCP)            │ (SaaS/Hybrid)        │
+├─────────────────┼──────────────┼──────────────────┼──────────────────────┤
+│ Airflow version │ Lags behind  │ Lags behind      │ Latest stable        │
+│ Deployment      │ VPC-native   │ GKE-native       │ Kubernetes (any)     │
+│ DAG deploy      │ S3 sync      │ GCS sync         │ CI/CD push           │
+│ Custom plugins  │ S3 zip       │ GCS zip          │ Docker image         │
+│ Scaling         │ Auto (limits)│ Auto (GKE)       │ KEDA autoscale       │
+│ Observability   │ CloudWatch   │ Cloud Logging    │ Astronomer UI        │
+│ Cost model      │ Per environment│ Per vCPU hour  │ Per worker/month     │
+│ Multi-tenancy   │ Separate env │ Separate env     │ Workspaces + RBAC    │
+│ Best for        │ AWS shops    │ GCP shops        │ Multi-cloud/serious  │
+└─────────────────┴──────────────┴──────────────────┴──────────────────────┘
+```
+
+### 21.2 AWS MWAA (Managed Workflows for Apache Airflow)
+
+```
+Architecture:
+  ┌─────────────────────────────────────────┐
+  │                  VPC                    │
+  │  ┌──────────┐  ┌──────────┐            │
+  │  │ Scheduler│  │Webserver │            │
+  │  └────┬─────┘  └────┬─────┘            │
+  │       │              │                 │
+  │  ┌────▼──────────────▼─────┐           │
+  │  │      RDS (Aurora)       │           │
+  │  │      Metadata DB        │           │
+  │  └─────────────────────────┘           │
+  │                                        │
+  │  ┌─────────────────────────┐           │
+  │  │   Fargate Workers       │           │
+  │  │   (auto-scaling)        │           │
+  │  └─────────────────────────┘           │
+  └─────────────────────────────────────────┘
+
+DAG Deployment:
+  git push ──► S3 bucket ──► MWAA auto-syncs every ~1 min
+
+Limitations:
+  - No SSH into workers/scheduler
+  - Limited Airflow version options
+  - No custom executor configuration
+```
+
+### 21.3 GCP Cloud Composer
+
+```
+Architecture:
+  - Built on GKE (Google Kubernetes Engine)
+  - Scheduler + Webserver run as GKE pods
+  - Workers scale via GKE autoscaling
+  - Uses Cloud SQL (PostgreSQL) for Metadata DB
+  - Logs to Cloud Logging
+
+DAG Deployment:
+  git push ──► Cloud Build ──► GCS bucket ──► Composer auto-syncs
+
+Composer 2 (latest):
+  - Uses KubernetesPodOperator for full task isolation
+  - Environment-level autoscaling (scale workers to 0)
+  - Per-task resource allocation
+```
+
+### 21.4 Astronomer
+
+```
+Key Features:
+  - Astro CLI for local development (docker-compose based)
+  - Deployments on Astronomer SaaS or private GKE/EKS/AKS
+  - KEDA-based autoscaling (workers scale to 0)
+  - Built-in Lineage (OpenLineage integration)
+  - Deployment API for CI/CD integration
+  - Astronomer-certified operators with support
+
+astro CLI:
+  $ astro dev init          # create project
+  $ astro dev start         # run locally
+  $ astro deploy            # push to Astronomer cloud
+  $ astro deployment list   # manage deployments
+```
+
+---
+
+## 22. Airflow 1.x → 2.x Migration
+
+### 22.1 Key Differences
+
+```
+┌───────────────────────────────────────────────────────────┐
+│            AIRFLOW 1.x vs 2.x KEY DIFFERENCES             │
+├─────────────────────────┬─────────────────────────────────┤
+│ Feature                 │ 1.x            │ 2.x            │
+├─────────────────────────┼────────────────┼────────────────┤
+│ TaskFlow API            │ No             │ @dag/@task ✅   │
+│ Scheduler HA            │ No             │ Multi-scheduler │
+│ DAG Serialization       │ Optional       │ Default ✅      │
+│ REST API                │ Experimental   │ Stable ✅       │
+│ execution_date          │ Primary name   │ logical_date   │
+│ SubDAGs                 │ Common pattern │ Deprecated ❌   │
+│ TaskGroups              │ No             │ ✅              │
+│ Triggerer               │ No             │ ✅ (2.2+)       │
+│ Dynamic Task Mapping    │ No             │ ✅ (2.3+)       │
+│ Datasets                │ No             │ ✅ (2.4+)       │
+│ Setup/Teardown          │ No             │ ✅ (2.7+)       │
+│ Timetables              │ No             │ ✅ (2.2+)       │
+│ provide_context         │ Required       │ Deprecated      │
+│ import path changes     │ airflow.contrib │ airflow.providers│
+└─────────────────────────┴────────────────┴────────────────┘
+```
+
+### 22.2 Common Migration Steps
+
+```python
+# ❌ Airflow 1.x style
+from airflow.contrib.operators.spark_submit_operator import SparkSubmitOperator
+
+t = PythonOperator(
+    task_id='my_task',
+    python_callable=my_fn,
+    provide_context=True    # deprecated in 2.x
+)
+
+# ✅ Airflow 2.x style
+from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
+
+# provide_context no longer needed; context injected automatically
+t = PythonOperator(
+    task_id='my_task',
+    python_callable=my_fn
+)
+
+# Access context with:
+def my_fn(**context):
+    ds = context['ds']
+    ti = context['ti']
+```
+
+### 22.3 Migration Checklist
+
+```
+Pre-migration:
+  ☐ Run: airflow upgrade_check (Airflow upgrade check plugin)
+  ☐ Update all provider packages (airflow-providers-*)
+  ☐ Update imports from airflow.contrib.* to airflow.providers.*
+  ☐ Remove provide_context=True from all PythonOperators
+  ☐ Replace SubDAGs with TaskGroups
+  ☐ Update execution_date references to logical_date
+  ☐ Re-test all DAGs in staging environment
+  ☐ Upgrade Metadata DB schema: airflow db upgrade
+```
+
+---
+
+## 23. Setup & Teardown Tasks (Airflow 2.7+)
+
+### 23.1 What is Setup/Teardown?
+
+Setup and Teardown tasks let you define infrastructure provisioning and cleanup tasks that:
+- **Setup** runs before work tasks
+- **Teardown** runs after work tasks — EVEN if work tasks fail
+- Teardown tasks do not affect the DAG's final state
+
+```python
+from airflow.decorators import dag, task, setup, teardown
+
+@dag(schedule='@daily', start_date=datetime(2024, 1, 1))
+def etl_with_infrastructure():
+
+    @setup
+    def create_cluster():
+        """Provision EMR/Spark cluster"""
+        cluster_id = provision_emr_cluster()
+        return cluster_id
+
+    @task
+    def run_job(cluster_id: str):
+        """Run the actual ETL"""
+        submit_spark_job(cluster_id)
+
+    @teardown
+    def destroy_cluster(cluster_id: str):
+        """Always clean up, even if run_job fails"""
+        terminate_emr_cluster(cluster_id)
+
+    cluster = create_cluster()
+    job = run_job(cluster)
+    destroy_cluster(cluster) >> job   # teardown linked to setup
+```
+
+**Flow Diagram:**
+```
+[create_cluster (setup)] ──► [run_job] ──► [destroy_cluster (teardown)]
+         │                       │                   ▲
+         │                       └── fails ───────────┘
+         │                                  teardown STILL runs
+         └────────────────────────────────────────────┘
+              setup → work → teardown (guaranteed cleanup)
+```
+
+**Why it matters:**
+```
+Without setup/teardown:
+  - Developers use on_failure_callback hacks for cleanup
+  - Infrastructure leaks when tasks fail (expensive idle clusters!)
+
+With setup/teardown:
+  - Teardown always runs regardless of work task outcome
+  - Cluster lifecycle is explicitly modeled in the DAG
+  - No orphaned cloud resources
+```
+
+---
+
+## 24. Custom Timetables (Airflow 2.2+)
+
+### 24.1 What is a Timetable?
+
+A Timetable is a class that defines WHEN a DAG runs. It replaces `schedule_interval` for complex scheduling needs:
+
+- Business days only
+- Quarterly runs
+- Fiscal calendar
+- Run on 15th and last day of each month
+
+### 24.2 Standard Timetables
+
+```python
+from airflow.timetables.interval import CronDataIntervalTimetable, DeltaDataIntervalTimetable
+from airflow.timetables.trigger import CronTriggerTimetable
+
+# Standard interval (covers a time window)
+schedule = CronDataIntervalTimetable('0 6 * * MON-FRI', timezone='US/Eastern')
+
+# Trigger-based (no data interval, just triggers at this time)
+schedule = CronTriggerTimetable('0 9 * * *', timezone='UTC')
+
+with DAG('business_daily', schedule=schedule, ...):
+    ...
+```
+
+### 24.3 Custom Timetable Example
+
+```python
+# plugins/timetables/business_day_timetable.py
+from datetime import timedelta
+from typing import Optional
+from pendulum import DateTime, instance
+import pendulum
+
+from airflow.plugins_manager import AirflowPlugin
+from airflow.timetables.base import DagRunInfo, DataInterval, TimeRestriction, Timetable
+
+
+class BusinessDayTimetable(Timetable):
+    """
+    Runs the DAG every business day (Mon-Fri) at 7 AM UTC.
+    Skips weekends automatically.
+    """
+
+    def infer_manual_data_interval(self, run_after: DateTime) -> DataInterval:
+        delta = timedelta(days=1)
+        start = run_after - delta
+        return DataInterval(start=start, end=run_after)
+
+    def next_dagrun_info(
+        self,
+        *,
+        last_automated_data_interval: Optional[DataInterval],
+        restriction: TimeRestriction,
+    ) -> Optional[DagRunInfo]:
+        if last_automated_data_interval is None:
+            next_start = restriction.earliest
+        else:
+            next_start = last_automated_data_interval.end
+
+        # Skip weekends
+        while next_start.day_of_week in (5, 6):  # 5=Sat, 6=Sun
+            next_start = next_start.add(days=1)
+
+        run_at = next_start.set(hour=7, minute=0, second=0)
+        return DagRunInfo.interval(
+            start=run_at - timedelta(days=1),
+            end=run_at,
+        )
+
+
+class BusinessDayPlugin(AirflowPlugin):
+    name = "business_day_plugin"
+    timetables = [BusinessDayTimetable]
+```
+
+```python
+# Using the custom timetable in a DAG
+from timetables.business_day_timetable import BusinessDayTimetable
+
+with DAG(
+    'business_pipeline',
+    timetable=BusinessDayTimetable(),
+    start_date=datetime(2024, 1, 1)
+) as dag:
+    ...
+```
+
+---
+
+## 25. Priority Weights & Task Queues
+
+### 25.1 Priority Weight
+
+When many tasks are queued and executor slots are limited, Airflow uses `priority_weight` to determine which task runs first.
+
+```python
+# Higher number = higher priority
+urgent_task = PythonOperator(
+    task_id='critical_sla_task',
+    python_callable=critical_fn,
+    priority_weight=100,     # runs before tasks with lower weights
+    weight_rule='absolute'
+)
+
+normal_task = PythonOperator(
+    task_id='routine_task',
+    python_callable=routine_fn,
+    priority_weight=1        # default
+)
+```
+
+**Weight Rules:**
+
+| Rule | Description |
+|---|---|
+| `downstream` | Weight = task's own weight + sum of all downstream task weights (default) |
+| `upstream` | Weight = task's own weight + sum of all upstream task weights |
+| `absolute` | Weight = exactly the task's `priority_weight` value |
+
+```
+Example with downstream (default):
+  [A(1)] ──► [B(2)] ──► [C(3)] ──► [D(4)]
+
+  Effective weights:
+  D = 4
+  C = 3 + 4 = 7
+  B = 2 + 7 = 9
+  A = 1 + 9 = 10   ← A has highest effective priority
+
+  This means upstream tasks that enable more downstream work get higher priority.
+```
+
+### 25.2 Task Queues (Celery)
+
+Queues route tasks to specific worker pools — useful for tasks requiring special hardware or isolation.
+
+```python
+# Assign tasks to named queues
+gpu_task = PythonOperator(
+    task_id='train_model',
+    python_callable=train,
+    queue='gpu_workers'     # only workers listening to 'gpu_workers' queue run this
+)
+
+cpu_task = PythonOperator(
+    task_id='preprocess',
+    python_callable=preprocess,
+    queue='default'         # default workers
+)
+```
+
+```bash
+# Start a worker listening to a specific queue
+airflow celery worker --queues gpu_workers
+
+# Start a worker for multiple queues
+airflow celery worker --queues default,gpu_workers
+```
+
+**Queue Architecture:**
+```
+Scheduler ──► Redis Broker ──┬──► Queue: default ──► Worker A, Worker B
+                              │
+                              └──► Queue: gpu_workers ──► GPU Worker 1
+                              │
+                              └──► Queue: high_memory ──► High-RAM Worker
+```
+
+---
+
+## 26. Monitoring & Observability
+
+### 26.1 StatsD Metrics
+
+Airflow emits metrics via StatsD that can be forwarded to Prometheus, Grafana, Datadog.
+
+```ini
+# airflow.cfg
+[metrics]
+statsd_on = True
+statsd_host = localhost
+statsd_port = 8125
+statsd_prefix = airflow
+```
+
+**Key metrics to monitor:**
+
+| Metric | What It Tells You |
+|---|---|
+| `airflow.scheduler.heartbeat` | Scheduler is alive |
+| `airflow.dag.loading-duration.*` | DAG parse time (high = slow DAG files) |
+| `airflow.ti.start.*` | Task instance start rate |
+| `airflow.ti.finish.*.success` | Task success rate |
+| `airflow.ti.finish.*.failed` | Task failure rate |
+| `airflow.executor.open_slots` | Available executor slots |
+| `airflow.executor.queued_tasks` | Backlog size |
+| `airflow.pool.open_slots.*` | Pool availability |
+| `airflow.pool.used_slots.*` | Pool utilization |
+
+### 26.2 Monitoring Architecture
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│               AIRFLOW MONITORING STACK                       │
+│                                                              │
+│  Airflow ──► StatsD ──► Prometheus ──► Grafana dashboards   │
+│                              │                               │
+│                              └──► Alertmanager ──► PagerDuty │
+│                                                              │
+│  Airflow logs ──► Fluentd/Fluentbit ──► Elasticsearch       │
+│                                              │               │
+│                                         Kibana dashboard     │
+│                                                              │
+│  Airflow events ──► Listener Plugin ──► Audit DB            │
+│                                       ──► Slack/Teams alert │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### 26.3 OpenLineage Integration
+
+OpenLineage provides data lineage tracking across Airflow tasks.
+
+```python
+# Install: pip install openlineage-airflow
+
+# airflow.cfg or environment variable:
+# OPENLINEAGE_URL=http://marquez:5000
+# OPENLINEAGE_NAMESPACE=production
+
+# Operators like PostgresOperator, SparkSubmitOperator, BigQueryOperator
+# automatically emit lineage events when OpenLineage is configured.
+# No code changes needed for supported operators!
+```
+
+```
+Lineage Flow:
+  [Source Table] ──► [Transform Task] ──► [Target Table]
+                          │
+                   emits lineage events
+                          │
+                    [Marquez / OpenMetadata]
+                          │
+                    Lineage graph & impact analysis
+```
+
+### 26.4 Prometheus Exporter
+
+```yaml
+# docker-compose.yml snippet
+prometheus:
+  image: prom/prometheus
+  volumes:
+    - ./prometheus.yml:/etc/prometheus/prometheus.yml
+
+# prometheus.yml
+scrape_configs:
+  - job_name: 'airflow-statsd'
+    static_configs:
+      - targets: ['statsd-exporter:9102']
+```
+
+---
+
+## 27. Integration Guide: dbt, Spark, Databricks
+
+### 27.1 Airflow + dbt
+
+dbt (data build tool) handles SQL transformations; Airflow orchestrates when they run.
+
+```python
+from airflow.operators.bash import BashOperator
+
+# Option 1: BashOperator (simple)
+dbt_run = BashOperator(
+    task_id='dbt_run',
+    bash_command='cd /opt/dbt && dbt run --profiles-dir /opt/dbt --target prod',
+    env={'DBT_PROFILES_DIR': '/opt/dbt'}
+)
+
+dbt_test = BashOperator(
+    task_id='dbt_test',
+    bash_command='cd /opt/dbt && dbt test --profiles-dir /opt/dbt',
+)
+
+dbt_run >> dbt_test
+```
+
+```python
+# Option 2: Cosmos (Astronomer's dbt-airflow integration)
+# pip install astronomer-cosmos
+
+from cosmos import DbtTaskGroup, ProjectConfig, ProfileConfig, ExecutionConfig
+from cosmos.profiles import SnowflakeUserPasswordProfileMapping
+
+profile_config = ProfileConfig(
+    profile_name="my_project",
+    target_name="prod",
+    profile_mapping=SnowflakeUserPasswordProfileMapping(
+        conn_id="snowflake_default"
+    ),
+)
+
+with DAG('dbt_pipeline', ...):
+    transform = DbtTaskGroup(
+        group_id="transform",
+        project_config=ProjectConfig("/opt/dbt/my_project"),
+        profile_config=profile_config,
+        execution_config=ExecutionConfig(dbt_executable_path="/usr/local/bin/dbt"),
+    )
+```
+
+**Airflow + dbt Flow:**
+```
+[Extract (Airbyte/Fivetran)] ──► [dbt run (transform)] ──► [dbt test (quality)] ──► [Report]
+         (Airflow triggers)          (Airflow runs dbt)        (Airflow asserts)
+```
+
+### 27.2 Airflow + Apache Spark
+
+```python
+from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
+
+spark_job = SparkSubmitOperator(
+    task_id='process_large_dataset',
+    application='/opt/spark/jobs/etl_job.py',
+    conn_id='spark_default',
+    conf={
+        'spark.driver.memory': '4g',
+        'spark.executor.instances': '10',
+        'spark.executor.memory': '8g',
+        'spark.sql.shuffle.partitions': '200'
+    },
+    py_files='/opt/spark/dependencies.zip',
+    application_args=['--date', '{{ ds }}'],
+)
+```
+
+### 27.3 Airflow + Databricks
+
+```python
+from airflow.providers.databricks.operators.databricks import (
+    DatabricksRunNowOperator,
+    DatabricksSubmitRunOperator
+)
+
+# Option 1: Trigger an existing Databricks Job
+run_existing_job = DatabricksRunNowOperator(
+    task_id='run_databricks_job',
+    databricks_conn_id='databricks_default',
+    job_id=12345,
+    notebook_params={'date': '{{ ds }}', 'env': 'prod'},
+    deferrable=True    # ← frees worker slot during 3-hour job!
+)
+
+# Option 2: Submit an ad-hoc notebook run
+run_notebook = DatabricksSubmitRunOperator(
+    task_id='run_notebook',
+    databricks_conn_id='databricks_default',
+    new_cluster={
+        'spark_version': '13.3.x-scala2.12',
+        'node_type_id': 'i3.xlarge',
+        'num_workers': 5
+    },
+    notebook_task={
+        'notebook_path': '/Shared/ETL/transform_data',
+        'base_parameters': {'date': '{{ ds }}'}
+    },
+    deferrable=True
+)
+```
+
+---
+
+## 28. Cluster Policies
+
+### 28.1 What are Cluster Policies?
+
+Cluster Policies allow platform administrators to enforce standards across ALL DAGs without requiring DAG authors to manually configure them. They run when Airflow loads DAGs.
+
+```python
+# config/airflow_local_settings.py  (or plugin)
+
+def dag_policy(dag):
+    """Enforce organizational standards on every DAG."""
+    # 1. Require all DAGs to have a tag
+    if not dag.tags:
+        raise AirflowClusterPolicyViolation(
+            f"DAG {dag.dag_id} must have at least one tag."
+        )
+
+    # 2. Auto-set owner if missing
+    if dag.default_args.get('owner') == 'airflow':
+        dag.default_args['owner'] = 'platform-team'
+
+    # 3. Limit max_active_runs for all DAGs
+    if dag.max_active_runs > 5:
+        raise AirflowClusterPolicyViolation(
+            f"DAG {dag.dag_id} max_active_runs ({dag.max_active_runs}) exceeds limit of 5."
+        )
+
+
+def task_policy(task):
+    """Enforce standards on every task in every DAG."""
+    # 1. Require retries on all tasks
+    if task.retries is None or task.retries < 1:
+        task.retries = 2
+        task.retry_delay = timedelta(minutes=5)
+
+    # 2. Require all tasks to have an SLA
+    # if not task.sla:
+    #     raise AirflowClusterPolicyViolation("All tasks must have an SLA.")
+
+    # 3. Force all sensors to use reschedule mode
+    from airflow.sensors.base import BaseSensorOperator
+    if isinstance(task, BaseSensorOperator) and task.mode == 'poke':
+        task.mode = 'reschedule'
+```
+
+**When to use Cluster Policies:**
+```
+✅ Great for:
+  - Enforcing retry standards across 100+ DAGs
+  - Auto-adding tags, owner, SLAs
+  - Preventing resource abuse (too many active runs)
+  - Centralizing platform governance
+
+❌ Not for:
+  - Task-specific business logic
+  - Anything that changes frequently
+```
+
+---
+
+## 29. DAG Lifecycle & Scheduler Internals
+
+### 29.1 The Scheduler Loop (Simplified)
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                   SCHEDULER LOOP                             │
+│                                                              │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  Step 1: Parse DAG files                             │   │
+│  │  DagFileProcessorManager reads *.py from dags/       │   │
+│  │  Serializes to JSON → stores in Metadata DB          │   │
+│  └────────────────────┬─────────────────────────────────┘   │
+│                       │                                      │
+│  ┌────────────────────▼─────────────────────────────────┐   │
+│  │  Step 2: Create DagRuns                              │   │
+│  │  Check: is a new DagRun needed? (schedule met?)      │   │
+│  │  If yes → create DagRun with state = RUNNING         │   │
+│  └────────────────────┬─────────────────────────────────┘   │
+│                       │                                      │
+│  ┌────────────────────▼─────────────────────────────────┐   │
+│  │  Step 3: Evaluate TaskInstances                      │   │
+│  │  For each active DagRun:                             │   │
+│  │    - Check task dependencies (all upstream done?)    │   │
+│  │    - Check trigger rules                             │   │
+│  │    - Check pool slots available                      │   │
+│  │    - Check priority weights                          │   │
+│  │  Mark qualifying tasks as SCHEDULED                  │   │
+│  └────────────────────┬─────────────────────────────────┘   │
+│                       │                                      │
+│  ┌────────────────────▼─────────────────────────────────┐   │
+│  │  Step 4: Submit to Executor                          │   │
+│  │  Send SCHEDULED tasks to the Executor queue          │   │
+│  │  Executor sends to Worker (Celery/K8s/Local)         │   │
+│  │  Task state: SCHEDULED → QUEUED → RUNNING            │   │
+│  └────────────────────┬─────────────────────────────────┘   │
+│                       │                                      │
+│  ┌────────────────────▼─────────────────────────────────┐   │
+│  │  Step 5: Detect Zombies                              │   │
+│  │  Check heartbeats of running tasks                   │   │
+│  │  Tasks with stale heartbeats → marked FAILED         │   │
+│  └────────────────────┬─────────────────────────────────┘   │
+│                       │                                      │
+│                  ← Loop repeats every 1-5 seconds →          │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### 29.2 LocalTaskJob
+
+When Airflow runs a task, it creates a **LocalTaskJob** — a wrapper process on the worker that:
+1. Starts the actual task subprocess
+2. Sends periodic heartbeats to the Metadata DB (every ~5 seconds)
+3. Monitors the subprocess for unexpected deaths
+4. Updates the task state to SUCCESS or FAILED in the DB
+
+```
+Worker receives task ──► LocalTaskJob starts
+                              │
+                              ├── Starts task subprocess
+                              ├── Sends heartbeat every 5s to DB
+                              └── Waits for subprocess to complete
+                                      │
+                              task exits with 0 ──► SUCCESS in DB
+                              task exits with non-0 ──► FAILED in DB
+                              LocalTaskJob crashes ──► Zombie detected by Scheduler
+```
+
+### 29.3 Task State Machine (Complete)
+
+```
+                    ┌─────────────┐
+                    │    none     │
+                    │ (not sched) │
+                    └──────┬──────┘
+                           │ scheduler creates TI
+                    ┌──────▼──────┐
+                    │  scheduled  │
+                    └──────┬──────┘
+                           │ sent to executor
+                    ┌──────▼──────┐
+                    │   queued    │
+                    └──────┬──────┘
+                           │ worker picks up
+                    ┌──────▼──────┐
+              ┌────►│   running   │
+              │     └──────┬──────┘
+              │            │
+              │     ┌──────▼─────┐    max retries reached
+              │     │   failed   │──────────────────────────────────────┐
+              │     └──────┬─────┘                                      │
+              │            │ retries left                                │
+              │     ┌──────▼──────────┐                                 │
+              └─────┤  up_for_retry   │                                 │
+                    └─────────────────┘                                 │
+                                                                        │
+              ┌────────────────────────────────────────────────────────▼──┐
+              │                   terminal states                          │
+              │  success │ failed │ upstream_failed │ skipped │ shutdown   │
+              └──────────────────────────────────────────────────────────┘
+
+Additional states:
+  deferred         ──► waiting in Triggerer (async)
+  up_for_reschedule ──► sensor in reschedule mode between polls
+  removed          ──► task removed from DAG definition
+```
+
+---
+
+## 30. Interview Q&A — Expert Level
+
+**Q61. How do you create a custom operator and what are the critical rules?**
+
+Creating a custom operator means extending `BaseOperator`. Critical rules:
+1. **Constructor (`__init__`)** must be lightweight — it runs every time the Scheduler parses the DAG (every few seconds). Never open DB connections or make API calls here.
+2. **`execute(context)`** is where actual work happens — called only when the task runs.
+3. Declare `template_fields` for any field you want Jinja templating support on.
+4. Always call `super().__init__(**kwargs)` as the first line of `__init__`.
+5. Use `self.log` (not `print`) for logging.
+
+```python
+class NotifySlackOperator(BaseOperator):
+    template_fields = ('message',)   # Jinja will render {{ ds }}, etc.
+
+    def __init__(self, message: str, channel: str, conn_id: str = 'slack', **kwargs):
+        super().__init__(**kwargs)
+        self.message = message
+        self.channel = channel
+        self.conn_id = conn_id
+
+    def execute(self, context):
+        hook = SlackHook(slack_conn_id=self.conn_id)   # Hook goes in execute()
+        hook.call('chat.postMessage', json={'channel': self.channel, 'text': self.message})
+```
+
+---
+
+**Q62. What is the difference between `parallelism`, `max_active_tasks_per_dag`, and `worker_concurrency`?**
+
+- **`parallelism`** (`airflow.cfg [core]`): Global cap on total simultaneously running task instances across ALL DAGs and all workers. If this is 32, a maximum of 32 tasks run at any moment cluster-wide.
+- **`max_active_tasks_per_dag`** (`airflow.cfg [core]` or per-DAG `concurrency`): Max tasks running at once within a SINGLE DAG (regardless of how many DAG runs are active). Prevents one busy DAG from consuming all parallelism slots.
+- **`worker_concurrency`** (Celery): Max tasks a single Celery worker process will pick up simultaneously. Multiply this by the number of workers to understand the practical ceiling.
+
+```
+Global ceiling:     parallelism = 32
+  │
+  ├── DAG A can use at most: max_active_tasks_per_dag = 16
+  └── DAG B can use at most: max_active_tasks_per_dag = 16
+
+Worker 1:           worker_concurrency = 8  (picks up max 8 tasks)
+Worker 2:           worker_concurrency = 8
+Worker 3:           worker_concurrency = 8
+Worker 4:           worker_concurrency = 8
+                    Total = 32 ← matches parallelism
+```
+
+---
+
+**Q63. What is RBAC in Airflow and what are the built-in roles?**
+
+Airflow uses Role-Based Access Control (RBAC) via Flask-AppBuilder. Five built-in roles:
+- **Admin**: Full access including user/role management
+- **Op**: Can manage connections, variables, pools, trigger/clear DAGs
+- **User**: Can trigger and clear DAGs they have access to
+- **Viewer**: Read-only access to DAGs, runs, logs
+- **Public**: No authentication required (if enabled)
+
+Custom roles can be created in the UI (Security → List Roles) and DAGs can have `access_control` to restrict which roles can interact with them.
+
+---
+
+**Q64. What is a Custom Timetable and when do you need one?**
+
+When `schedule_interval`'s cron syntax is insufficient — e.g., run only on business days, fiscal quarters, or custom calendar intervals — you create a `Timetable` subclass. Introduced in Airflow 2.2+.
+
+You override two methods:
+- `next_dagrun_info()` — returns when the next run should happen
+- `infer_manual_data_interval()` — defines data interval for manual triggers
+
+Register the timetable via an Airflow Plugin.
+
+---
+
+**Q65. What is `priority_weight` and `weight_rule` in Airflow?**
+
+`priority_weight` assigns a numeric priority to a task. When multiple tasks compete for limited executor slots, higher-weight tasks run first.
+
+`weight_rule` determines how the effective weight is calculated:
+- `downstream` (default): task weight + sum of all downstream weights → upstream tasks get boosted priority since they unlock more work
+- `upstream`: task weight + sum of upstream weights
+- `absolute`: use exactly the `priority_weight` value; no cascade
+
+---
+
+**Q66. What are the key differences between Airflow 1.x and 2.x?**
+
+Major changes in 2.x:
+1. **TaskFlow API** (`@dag`, `@task`) — no more `PythonOperator` + manual XCom
+2. **HA Scheduler** — multiple schedulers can run simultaneously
+3. **DAG Serialization** on by default
+4. **Stable REST API** (2.0+)
+5. **TaskGroups** replace SubDAGs
+6. **Triggerer** for deferrable operators (2.2+)
+7. **Dynamic Task Mapping** (2.3+)
+8. **Datasets** for event-driven scheduling (2.4+)
+9. **Setup/Teardown tasks** (2.7+)
+10. Provider packages split from core (`airflow.contrib.*` → `airflow.providers.*`)
+
+---
+
+**Q67. What is `soft_fail` in sensors and when would you use it?**
+
+`soft_fail=True` on a sensor means: if the sensor times out or fails, mark the task as `skipped` instead of `failed`. This prevents the entire DAG run from failing due to missing source data.
+
+```python
+wait_for_file = S3KeySensor(
+    task_id='wait_for_optional_data',
+    bucket_key='data/{{ ds }}/optional_file.csv',
+    timeout=3600,
+    soft_fail=True   # skip this path if file never arrives
+)
+```
+
+Use when: the upstream data is optional, and downstream tasks can handle its absence via trigger rules (`none_failed_min_one_success`).
+
+---
+
+**Q68. What is the Airflow REST API and what can you do with it?**
+
+The stable REST API (introduced in Airflow 2.0) enables programmatic control:
+
+```bash
+# Authentication
+curl -u admin:password ...
+
+# List DAGs
+GET /api/v1/dags
+
+# Trigger a DAG
+POST /api/v1/dags/{dag_id}/dagRuns
+Body: {"conf": {"param": "value"}}
+
+# Get task instance status
+GET /api/v1/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances/{task_id}
+
+# Clear a task instance
+POST /api/v1/dags/{dag_id}/clearTaskInstances
+Body: {"task_ids": ["task_a"], "start_date": "2024-01-01"}
+
+# Update variable
+PATCH /api/v1/variables/{variable_key}
+Body: {"value": "new_value"}
+```
+
+**Use cases:** CI/CD pipeline triggers, external monitoring systems, ITSM integrations, Airflow-to-Airflow orchestration.
+
+---
+
+**Q69. How does Airflow's DAG Serialization work and why was it introduced?**
+
+Before serialization, the Webserver parsed all Python DAG files directly — running Python code for each page view. This caused high CPU usage and security concerns (arbitrary Python execution in the UI process).
+
+With serialization (default in Airflow 2.x):
+1. Scheduler parses DAG Python files
+2. Converts DAG structure to JSON
+3. Stores JSON in `serialized_dag` table in Metadata DB
+4. Webserver reads JSON from DB — never touches Python files
+
+Benefits: Webserver is faster, more secure, and can scale independently. Webserver nodes don't need access to the DAG files at all.
+
+---
+
+**Q70. Explain how ExternalTaskSensor handles execution_delta.**
+
+`ExternalTaskSensor` waits for a task in a different DAG. Since DAGs may run at different schedules, `execution_delta` (or `execution_date_fn`) aligns which run of the external DAG to wait for.
+
+```python
+# Your reporting DAG runs at 8 AM
+# The upstream ingestion DAG runs at 6 AM (2 hours earlier)
+
+wait_for_ingestion = ExternalTaskSensor(
+    task_id='wait',
+    external_dag_id='ingestion_pipeline',
+    external_task_id='final_load',
+    execution_delta=timedelta(hours=2),  # look for the run 2 hours before THIS run's logical_date
+    mode='reschedule'
+)
+```
+
+Without `execution_delta`, it would look for a run with the SAME `logical_date` as the current run — which may not exist.
+
+---
+
+**Q71. What are Datasets in Airflow 2.4+ and how do they enable event-driven scheduling?**
+
+Datasets represent logical data assets (an S3 path, a DB table). DAGs can declare:
+- **`outlets=[dataset]`** — "I produce this dataset"
+- **`schedule=[dataset]`** — "Run me when this dataset is updated"
+
+```python
+sales_dataset = Dataset("s3://data-lake/sales/{{ds}}/")
+
+# Producer DAG
+@dag(schedule='@daily')
+def ingest_sales():
+    @task(outlets=[sales_dataset])   # marks dataset as updated on success
+    def load_to_s3():
+        pass
+    load_to_s3()
+
+# Consumer DAG — NO schedule_interval, triggers when dataset is updated!
+@dag(schedule=[sales_dataset])
+def generate_report():
+    @task
+    def build_report():
+        pass
+    build_report()
+```
+
+This decouples producer and consumer DAGs — no ExternalTaskSensor polling required.
+
+---
+
+**Q72. What is a Cluster Policy and how does it enforce organizational standards?**
+
+A Cluster Policy is a function defined in `airflow_local_settings.py` that runs when Airflow loads every DAG/task. The platform team can use it to:
+- Enforce tagging requirements
+- Force retry settings
+- Change sensor modes (poke → reschedule)
+- Block DAGs violating resource limits
+
+```python
+# config/airflow_local_settings.py
+from airflow.exceptions import AirflowClusterPolicyViolation
+
+def task_policy(task):
+    # Force all sensors to use reschedule mode to save worker slots
+    from airflow.sensors.base import BaseSensorOperator
+    if isinstance(task, BaseSensorOperator):
+        task.mode = 'reschedule'
+    
+    # Enforce retries on all tasks
+    if task.retries < 1:
+        task.retries = 2
+```
+
+---
+
+**Q73. How would you implement a circuit breaker pattern in Airflow?**
+
+The circuit breaker pattern stops the pipeline if a critical check fails — preventing partial loads from corrupting downstream systems.
+
+```python
+from airflow.exceptions import AirflowSkipException, AirflowFailException
+
+@task
+def circuit_breaker_check(ds: str) -> str:
+    """Fails the pipeline if source data quality is unacceptable."""
+    row_count = get_source_row_count(ds)
+    
+    if row_count == 0:
+        raise AirflowSkipException("No data available — skipping entire pipeline")
+    
+    if row_count < MIN_EXPECTED_ROWS:
+        raise AirflowFailException(
+            f"Only {row_count} rows found, expected >= {MIN_EXPECTED_ROWS}. "
+            "Failing to prevent corrupted load."
+        )
+    
+    return f"OK: {row_count} rows"
+
+# DAG flow
+check = circuit_breaker_check()
+transform = transform_data()
+load = load_to_warehouse()
+
+check >> transform >> load
+```
+
+---
+
+**Q74. What are the main managed Airflow offerings and when would you choose each?**
+
+- **AWS MWAA**: Best for AWS-centric shops that want zero infrastructure management. Tightly integrated with IAM, S3, CloudWatch. DAGs deployed via S3.
+- **GCP Cloud Composer**: Best for GCP shops. Built on GKE with tight BigQuery/GCS integration. Composer 2 offers autoscaling workers.
+- **Astronomer**: Best for teams wanting the latest Airflow features, multi-cloud support, strong RBAC, CI/CD integration, and enterprise support. Uses Docker + Kubernetes.
+
+For greenfield: if you're already on AWS/GCP, use the native managed service. For multi-cloud or needing cutting-edge Airflow features, Astronomer.
+
+---
+
+**Q75. How do you pass configuration to a DAG at runtime?**
+
+Three methods:
+
+```python
+# Method 1: Trigger with conf via CLI
+airflow dags trigger my_dag --conf '{"env": "prod", "date": "2024-01-15"}'
+
+# Method 2: Trigger via REST API
+POST /api/v1/dags/my_dag/dagRuns
+{"conf": {"env": "prod"}}
+
+# Method 3: Trigger via UI
+# Click "Trigger DAG w/ config" → enter JSON
+
+# Access inside a task
+@task
+def process(**context):
+    conf = context['dag_run'].conf
+    env = conf.get('env', 'dev')
+    date = conf.get('date', context['ds'])
+
+# Access in Jinja template
+'{{ dag_run.conf.get("env", "dev") }}'
+```
+
+---
+
+**Q76. How do you handle a long-running task (e.g., 3-hour Spark job) without blocking worker slots?**
+
+Use **deferrable operators** with the Triggerer:
+
+```python
+from airflow.providers.databricks.operators.databricks import DatabricksRunNowOperator
+
+spark_job = DatabricksRunNowOperator(
+    task_id='long_spark_job',
+    job_id=12345,
+    deferrable=True    # releases worker slot; Triggerer polls Databricks async
+)
+```
+
+Flow:
+```
+Task starts ──► submits job to Databricks ──► defers to Triggerer
+Worker slot FREED ──► Triggerer polls Databricks every 30s (async, no worker needed)
+Job finishes ──► Triggerer fires ──► Worker picks up task ──► marks SUCCESS
+```
+
+Without deferrable: one worker slot held for 3 hours per active job.
+With deferrable: Triggerer manages 1000s of waits with near-zero resource overhead.
+
+---
+
+**Q77. What is `depends_on_past` and how does it interact with backfilling?**
+
+`depends_on_past=True` means a task instance will only start if the same task's previous logical date instance **succeeded**. 
+
+During backfill, this creates a strict sequential dependency:
+```
+Jan 1 run ──► MUST succeed ──► Jan 2 run starts
+Jan 2 run ──► MUST succeed ──► Jan 3 run starts
+
+If Jan 2 fails:
+  Jan 3 is blocked — even if all of Jan 3's upstream tasks succeed.
+```
+
+During backfill with `--reset-dagruns`, you can override this to process all dates independently.
+
+**When to use:** Cumulative aggregations where day N depends on day N-1 being complete.
+
+---
+
+**Q78. Explain the difference between `on_failure_callback` at DAG vs task level.**
+
+- **Task-level `on_failure_callback`**: Called when THAT specific task fails. Receives `context` with details about the failed task.
+- **DAG-level `on_failure_callback`**: Called when ANY task in the DAG fails (actually it's called when the DAG run itself fails — the scheduler calls it after it determines the DAG run state is FAILED).
+
+```python
+# Task level — sends alert for each failed task
+task = PythonOperator(
+    on_failure_callback=alert_task_failure  # called per-task
+)
+
+# DAG level — notifies when the entire DAG is considered failed
+dag = DAG(
+    on_failure_callback=alert_dag_failure   # called once per DAG run failure
+)
+```
+
+For SLA, use `sla_miss_callback` on the DAG — it fires when a task exceeds its `sla` timedelta.
+
+---
+
+**Q79. How does the KubernetesExecutor differ from the CeleryExecutor in terms of resource isolation and cost?**
+
+| Aspect | CeleryExecutor | KubernetesExecutor |
+|---|---|---|
+| Task isolation | Shared worker process | Each task gets its own Pod |
+| Environment | All tasks share worker's Python env | Each task can use a different Docker image |
+| Idle cost | Workers always running (paying for idle) | Workers scale to 0 (pay per task) |
+| Cold start | Instant (worker already running) | 10-30s per task (Pod startup) |
+| Debug | Harder (task output in queue logs) | Pod logs accessible via `kubectl` |
+| Best for | High-frequency short tasks | Variable environments, cost-sensitive |
+
+```
+CeleryExecutor:
+  Workers always running ──► low latency, high idle cost
+
+KubernetesExecutor:
+  No idle workers ──► cold start per task, pay only for usage
+
+KubernetesPodOperator with CeleryExecutor:
+  Best of both — fast task pickup via Celery + isolated container per task
+```
+
+---
+
+**Q80. What is `airflow db clean` and when should you run it?**
+
+`airflow db clean` purges old data from the Metadata DB:
+- Old DAG runs
+- Old task instances  
+- Old XCom entries
+- Old import errors
+
+```bash
+# Delete records older than 90 days
+airflow db clean --clean-before-timestamp "2024-01-01 00:00:00" --yes
+
+# Dry run to see what would be deleted
+airflow db clean --clean-before-timestamp "2024-01-01 00:00:00" --dry-run
+```
+
+Run it as a scheduled maintenance DAG:
+```python
+maintenance = BashOperator(
+    task_id='clean_metadata_db',
+    bash_command='airflow db clean --clean-before-timestamp {{ macros.ds_add(ds, -90) }} --yes'
+)
+```
+
+Without regular cleaning, the Metadata DB grows unbounded → slower queries → slower Scheduler.
+
+---
+
+**Q81. What happens to running tasks if the Scheduler crashes in Airflow 2.x?**
+
+In Airflow 2.x with HA mode (multiple Schedulers):
+1. Running tasks on workers continue executing — workers don't depend on the Scheduler to run
+2. The surviving Scheduler(s) detect the crashed Scheduler via heartbeat timeouts
+3. The surviving Scheduler "adopts" orphaned task instances and monitors their heartbeats
+4. Any tasks whose LocalTaskJob heartbeat goes stale are detected as Zombie tasks and marked FAILED
+
+If running only ONE Scheduler and it crashes:
+- Running tasks continue on workers but state won't be updated until Scheduler restarts
+- New DAG runs won't be created
+- Zombie detection pauses
+
+This is why HA mode (2+ Schedulers) is recommended for production.
+
+---
+
+**Q82. How do you implement a retry with exponential backoff?**
+
+```python
+task = PythonOperator(
+    task_id='call_external_api',
+    python_callable=call_api,
+    retries=5,
+    retry_delay=timedelta(minutes=1),
+    retry_exponential_backoff=True,   # 1min, 2min, 4min, 8min, 16min...
+    max_retry_delay=timedelta(hours=1)  # cap the maximum wait
+)
+```
+
+Retry timeline:
+```
+Attempt 1 fails ──► wait 1 min  ──► Attempt 2
+Attempt 2 fails ──► wait 2 min  ──► Attempt 3
+Attempt 3 fails ──► wait 4 min  ──► Attempt 4
+Attempt 4 fails ──► wait 8 min  ──► Attempt 5
+Attempt 5 fails ──► wait 16 min ──► Attempt 6 (max retries → FAILED)
+```
+
+---
+
+**Q83. What is the Triggerer process and how does it save resources?**
+
+The Triggerer is an async event loop process (Python `asyncio`) that manages **deferrable operators**. When a task defers:
+
+1. Task writes a `Trigger` record to the Metadata DB
+2. Worker slot is freed immediately
+3. Triggerer reads pending Triggers from DB
+4. Runs all triggers as async coroutines (no blocking)
+5. When a trigger fires, Triggerer writes a `TriggerEvent` to DB
+6. Scheduler picks up the event, queues the task again
+7. Worker picks up and completes the task
+
+```
+Resource comparison for 100 waiting S3 sensors:
+
+  Poke mode:      100 tasks × 1 worker slot = 100 workers occupied for hours
+  Reschedule:     Workers used only during poke (efficient but still has overhead)
+  Deferrable:     1 Triggerer handles 1000s of waits with async I/O (near zero overhead)
+```
+
+---
+
+**Q84. How do you structure a large-scale Airflow project with many teams?**
+
+```
+monorepo/
+├── dags/
+│   ├── team_finance/
+│   │   ├── daily_revenue_dag.py
+│   │   └── monthly_report_dag.py
+│   ├── team_analytics/
+│   │   └── user_metrics_dag.py
+│   └── team_platform/
+│       └── infrastructure_cleanup_dag.py
+├── plugins/
+│   ├── operators/
+│   │   └── company_api_operator.py
+│   └── hooks/
+│       └── internal_db_hook.py
+├── tests/
+│   ├── test_finance_dags.py
+│   └── test_analytics_dags.py
+├── Makefile
+└── .github/workflows/
+    └── ci.yml       # lint → test → deploy
+
+Conventions:
+  - DAG IDs: {team}.{pipeline_name}  (e.g., 'finance.daily_revenue')
+  - All DAGs tagged with team name
+  - Separate pools per team for quota management
+  - RBAC: each team gets a role with access only to their DAGs
+```
+
+---
+
+**Q85. What is the difference between AirflowException, AirflowSkipException, and AirflowFailException?**
+
+```python
+from airflow.exceptions import AirflowException, AirflowSkipException, AirflowFailException
+
+# AirflowException (or any Exception):
+# Task fails → retries if configured → eventually FAILED state
+raise AirflowException("Something went wrong")
+
+# AirflowSkipException:
+# Task is marked as SKIPPED — no retries triggered
+# Useful when a task has nothing to do (no data for this date)
+raise AirflowSkipException("No data available for {{ ds }}")
+
+# AirflowFailException (Airflow 2.2+):
+# Task fails IMMEDIATELY — retries are NOT attempted
+# Useful when retrying won't help (schema mismatch, unrecoverable error)
+raise AirflowFailException("Schema mismatch — human intervention required")
+```
+
+---
+
+**Q86. How do you test DAGs in a CI/CD pipeline?**
+
+```python
+# tests/test_dag_integrity.py
+import pytest
+from airflow.models import DagBag
+
+@pytest.fixture
+def dagbag():
+    return DagBag(dag_folder='./dags', include_examples=False)
+
+def test_no_import_errors(dagbag):
+    assert len(dagbag.import_errors) == 0, f"Import errors: {dagbag.import_errors}"
+
+def test_all_dags_have_tags(dagbag):
+    for dag_id, dag in dagbag.dags.items():
+        assert dag.tags, f"DAG {dag_id} has no tags"
+
+def test_all_dags_have_retries(dagbag):
+    for dag_id, dag in dagbag.dags.items():
+        for task in dag.tasks:
+            assert task.retries >= 1, f"Task {dag_id}.{task.task_id} has no retries"
+
+def test_dag_task_count(dagbag):
+    dag = dagbag.get_dag('daily_etl')
+    assert len(dag.tasks) == 5
+
+def test_dag_structure(dagbag):
+    dag = dagbag.get_dag('daily_etl')
+    # Verify dependency structure
+    extract = dag.get_task('extract')
+    assert 'transform' in [t.task_id for t in extract.downstream_list]
+```
+
+```yaml
+# .github/workflows/ci.yml
+- name: Test DAGs
+  run: |
+    pip install apache-airflow pytest
+    pytest tests/ -v --tb=short
+```
+
+---
+
+**Q87. What is Git-Sync and how does it work in Kubernetes Airflow?**
+
+Git-Sync is a sidecar container pattern for Kubernetes deployments. It continuously syncs a Git repository to a shared volume that Airflow reads DAGs from.
+
+```yaml
+# Kubernetes Pod spec (simplified Helm chart values)
+scheduler:
+  extraContainers:
+    - name: git-sync
+      image: registry.k8s.io/git-sync/git-sync:v4.1.0
+      args:
+        - --repo=https://github.com/myorg/airflow-dags
+        - --branch=main
+        - --root=/git
+        - --period=30s    # sync every 30 seconds
+      volumeMounts:
+        - name: dags-volume
+          mountPath: /git
+```
+
+```
+Flow:
+  [Git push to main] ──► 30 seconds ──► git-sync detects change
+                                         ──► pulls latest DAGs
+                                         ──► Scheduler detects new files
+                                         ──► Refreshes DAG definitions
+```
+
+**Benefits:** DAG updates without restarting Airflow. Zero-downtime deployments. GitOps-compatible.
+
+---
+
+**Q88. How does Airflow handle Variables caching and what is the performance implication?**
+
+Airflow 2.x caches Variables with a TTL (default: 30 seconds). This means:
+
+```python
+# This hits the DB
+value = Variable.get('my_config')
+
+# Cached — no DB hit for ~30 seconds
+value = Variable.get('my_config')   # returned from cache
+
+# In Jinja templates, Variables are fetched at template render time
+# (not cached the same way)
+# {{ var.value.my_config }}
+```
+
+**Performance implications:**
+1. Reading Variables in `__init__` (DAG parse time) hits DB every parse cycle — very bad
+2. Reading Variables inside `execute()` is fine — happens only at task runtime
+3. Variables with sensitive values should use a Secrets Backend (not DB cache)
+
+```python
+# ❌ BAD — reads Variable on every DAG parse (every few seconds)
+my_var = Variable.get('config')  # top-level DAG file code
+
+with DAG(...) as dag:
+    t = PythonOperator(task_id='t', python_callable=lambda: my_var)
+
+# ✅ GOOD — reads Variable only when task executes
+@task
+def my_task():
+    config = Variable.get('config')  # inside execute()
+```
+
+---
+
+**Q89. What is the `max_active_runs` parameter and what problem does it solve?**
+
+`max_active_runs` limits how many concurrent DAG runs of the same DAG can be active simultaneously.
+
+```python
+dag = DAG(
+    'daily_pipeline',
+    max_active_runs=1,    # only ONE active run at a time
+    ...
+)
+```
+
+**Why it matters:**
+```
+Without limit (max_active_runs=16):
+  Backfill creates 365 DAG runs simultaneously
+  → 365 × tasks competing for resources
+  → Metadata DB overwhelmed
+  → Other DAGs starved of resources
+
+With max_active_runs=1:
+  Backfill runs one day at a time → orderly processing
+  
+With depends_on_past=True + max_active_runs=1:
+  Strictly sequential processing — perfect for cumulative loads
+```
+
+---
+
+**Q90. How would you debug a task that is stuck in the "running" state but not doing anything?**
+
+Step-by-step debugging:
+
+```
+Step 1: Check if it's a Zombie
+  ├── Is the worker process actually running?
+  └── Check worker logs: kubectl logs <worker-pod> / docker logs <worker>
+
+Step 2: Verify the task's heartbeat
+  └── DB query: SELECT heartbeat FROM task_instance 
+                WHERE dag_id='x' AND task_id='y' AND execution_date='z'
+  └── If heartbeat is stale (> 5 min old) → it's a zombie
+
+Step 3: For Kubernetes workers
+  └── kubectl get pods → is the task pod still Running?
+  └── kubectl logs <task-pod> → any error output?
+  └── kubectl describe pod <task-pod> → OOMKilled? Evicted?
+
+Step 4: For Celery workers
+  └── Check Flower UI (port 5555): is the task in active tasks?
+  └── Check Celery worker logs for the specific task
+
+Step 5: Force resolution
+  └── If confirmed zombie: airflow tasks clear my_dag stuck_task -s <date> -e <date>
+  └── Or mark failed: airflow tasks state-failed my_dag stuck_task <date>
+  └── Or kill worker pod (K8s) / worker process (Celery)
+```
+
+---
+
+## 31. Additional Scenario-Based Questions
+
+---
+
+### Scenario 16: Building a Custom Monitoring DAG
+
+**Question:** Create an Airflow DAG that monitors other DAGs and sends a daily health summary.
+
+**Answer:**
+
+```python
+from airflow.decorators import dag, task
+from airflow.models import DagRun
+from airflow.utils.state import DagRunState
+from datetime import datetime, timedelta
+
+@dag(
+    schedule_interval='0 8 * * *',   # 8 AM daily health report
+    start_date=datetime(2024, 1, 1),
+    catchup=False
+)
+def airflow_health_monitor():
+
+    @task
+    def check_failed_dags(ds: str) -> dict:
+        """Find all DAGs that had failures in the last 24 hours."""
+        yesterday = datetime.strptime(ds, '%Y-%m-%d') - timedelta(days=1)
+        
+        from airflow.utils.session import create_session
+        with create_session() as session:
+            failed_runs = session.query(DagRun).filter(
+                DagRun.state == DagRunState.FAILED,
+                DagRun.start_date >= yesterday
+            ).all()
+        
+        return {
+            'failed_count': len(failed_runs),
+            'failed_dags': [r.dag_id for r in failed_runs]
+        }
+
+    @task
+    def send_health_report(health_data: dict):
+        failed = health_data['failed_count']
+        status = '🔴 ISSUES DETECTED' if failed > 0 else '🟢 ALL HEALTHY'
+        message = f"""
+        Daily Airflow Health Report ({datetime.now().strftime('%Y-%m-%d')})
+        Status: {status}
+        Failed DAG runs: {failed}
+        Failed DAGs: {', '.join(health_data['failed_dags']) or 'None'}
+        """
+        # send via Slack/Email
+        notify(message)
+
+    report = send_health_report(check_failed_dags())
+
+dag = airflow_health_monitor()
+```
+
+---
+
+### Scenario 17: Database Migration Pipeline
+
+**Question:** Design a DAG that migrates data from an on-premise MySQL database to Snowflake, with row count validation.
+
+**Answer:**
+
+```python
+@dag(schedule_interval='@once', start_date=datetime(2024,1,1), catchup=False)
+def db_migration():
+
+    @task
+    def extract_from_mysql(table: str) -> str:
+        hook = MySqlHook(mysql_conn_id='onprem_mysql')
+        df = hook.get_pandas_df(f"SELECT * FROM {table}")
+        path = f"s3://migration-bucket/{table}/data.parquet"
+        df.to_parquet(path)
+        return path
+
+    @task
+    def validate_source(table: str) -> int:
+        hook = MySqlHook(mysql_conn_id='onprem_mysql')
+        return hook.get_first(f"SELECT COUNT(*) FROM {table}")[0]
+
+    @task
+    def load_to_snowflake(s3_path: str, table: str) -> int:
+        hook = SnowflakeHook(snowflake_conn_id='snowflake_default')
+        hook.run(f"""
+            COPY INTO {table}
+            FROM '{s3_path}'
+            FILE_FORMAT = (TYPE = PARQUET)
+        """)
+        return hook.get_first(f"SELECT COUNT(*) FROM {table}")[0]
+
+    @task
+    def validate_counts(source_count: int, target_count: int, table: str):
+        if source_count != target_count:
+            raise AirflowFailException(
+                f"Row count mismatch for {table}: "
+                f"source={source_count}, target={target_count}"
+            )
+        print(f"✅ Migration validated: {source_count} rows match")
+
+    tables = ['customers', 'orders', 'products']
+    for table in tables:
+        path = extract_from_mysql(table)
+        src_count = validate_source(table)
+        tgt_count = load_to_snowflake(path, table)
+        validate_counts(src_count, tgt_count, table)
+```
+
+---
+
+### Scenario 18: ML Pipeline Orchestration
+
+**Question:** Design an Airflow DAG for an end-to-end ML pipeline: data prep → feature engineering → training → evaluation → conditional deployment.
+
+**Answer:**
+
+```python
+@dag(
+    schedule_interval='@weekly',
+    start_date=datetime(2024, 1, 1),
+    catchup=False
+)
+def ml_training_pipeline():
+
+    @task
+    def prepare_data(ds: str) -> str:
+        path = f"s3://ml-data/prepared/{ds}/"
+        # extract and clean raw data
+        return path
+
+    @task
+    def engineer_features(data_path: str) -> str:
+        features_path = data_path.replace('prepared', 'features')
+        # compute features
+        return features_path
+
+    @task
+    def train_model(features_path: str) -> dict:
+        # train and log to MLflow
+        run_id = mlflow_train(features_path)
+        metrics = get_metrics(run_id)
+        return {'run_id': run_id, 'accuracy': metrics['accuracy'], 'f1': metrics['f1']}
+
+    @task.branch
+    def evaluate_model(model_info: dict) -> str:
+        """Decide whether to deploy based on metrics."""
+        if model_info['accuracy'] >= 0.90 and model_info['f1'] >= 0.85:
+            return 'deploy_model'
+        else:
+            return 'reject_model'
+
+    @task
+    def deploy_model(model_info: dict):
+        deploy_to_production(model_info['run_id'])
+        notify_team(f"Model deployed: accuracy={model_info['accuracy']:.2%}")
+
+    @task
+    def reject_model(model_info: dict):
+        notify_team(
+            f"Model rejected: accuracy={model_info['accuracy']:.2%} < 90% threshold. "
+            "Manual review required."
+        )
+
+    done = EmptyOperator(task_id='done', trigger_rule='none_failed_min_one_success')
+
+    data = prepare_data()
+    features = engineer_features(data)
+    model = train_model(features)
+    decision = evaluate_model(model)
+    [deploy_model(model), reject_model(model)] >> done
+```
+
+```
+Flow:
+  [prepare_data] ──► [engineer_features] ──► [train_model] ──► [evaluate_model]
+                                                                       │
+                                                         ┌─────────────┴─────────────┐
+                                                   accuracy ≥ 90%           accuracy < 90%
+                                                         │                         │
+                                               [deploy_model]           [reject_model]
+                                                         │                         │
+                                                         └──────────[done]──────────┘
+```
+
+---
+
+### Scenario 19: Multi-Region Data Aggregation
+
+**Question:** You need to aggregate data from 5 regional databases (US, EU, APAC, LATAM, MEA) into a global warehouse daily. Design the DAG.
+
+**Answer:**
+
+```python
+@dag(schedule_interval='0 2 * * *', start_date=datetime(2024,1,1), catchup=False)
+def global_data_aggregation():
+
+    REGIONS = {
+        'us': 'us_postgres',
+        'eu': 'eu_postgres',
+        'apac': 'apac_postgres',
+        'latam': 'latam_postgres',
+        'mea': 'mea_postgres'
+    }
+
+    @task
+    def extract_region(region: str, conn_id: str, ds: str) -> str:
+        hook = PostgresHook(postgres_conn_id=conn_id)
+        df = hook.get_pandas_df(
+            f"SELECT * FROM sales WHERE sale_date = '{ds}'"
+        )
+        df['region'] = region
+        path = f"s3://global-data/{ds}/{region}/sales.parquet"
+        df.to_parquet(path)
+        return path
+
+    @task
+    def merge_regions(paths: list, ds: str) -> str:
+        """Fan-in: merge all 5 regional extracts."""
+        import pandas as pd
+        dfs = [pd.read_parquet(p) for p in paths]
+        merged = pd.concat(dfs)
+        merged_path = f"s3://global-data/{ds}/merged/sales.parquet"
+        merged.to_parquet(merged_path)
+        return merged_path
+
+    @task
+    def load_global_warehouse(merged_path: str, ds: str):
+        hook = SnowflakeHook(snowflake_conn_id='global_warehouse')
+        hook.run(f"DELETE FROM global_sales WHERE sale_date = '{ds}'")
+        # load from S3
+
+    # Fan-out: extract all regions in parallel
+    regional_paths = [
+        extract_region.override(task_id=f'extract_{region}')(region, conn_id, '{{ ds }}')
+        for region, conn_id in REGIONS.items()
+    ]
+
+    # Fan-in: merge after all regions complete
+    merged = merge_regions(regional_paths)
+    load_global_warehouse(merged)
+```
+
+```
+Fan-Out / Fan-In Pattern:
+                        ┌──► extract_us   ──┐
+                        ├──► extract_eu   ──┤
+  [start] ─────────────┼──► extract_apac ──┼──► [merge_regions] ──► [load_warehouse]
+                        ├──► extract_latam──┤
+                        └──► extract_mea  ──┘
+  (all 5 run in parallel)                 (fan-in after all complete)
+```
+
+---
+
+### Scenario 20: Automated DAG Documentation
+
+**Question:** How do you ensure every DAG in a large team has proper documentation?
+
+**Answer:**
+
+```python
+# 1. Use Cluster Policy to enforce doc_md on all DAGs
+def dag_policy(dag):
+    if not dag.doc_md:
+        raise AirflowClusterPolicyViolation(
+            f"DAG '{dag.dag_id}' must have doc_md documentation."
+        )
+
+# 2. DAG documentation template (in each DAG file)
+with DAG(
+    dag_id='daily_revenue_pipeline',
+    doc_md="""
+    # Daily Revenue Pipeline
+    
+    **Owner:** Finance Team  
+    **Schedule:** Daily at 2 AM UTC  
+    **SLA:** Must complete by 6 AM UTC  
+    
+    ## Description
+    Extracts daily revenue data from PostgreSQL, applies business rules,
+    and loads aggregated metrics to Snowflake for BI reporting.
+    
+    ## Data Sources
+    - `financial_db.daily_transactions`
+    
+    ## Outputs  
+    - `snowflake.finance.daily_revenue_summary`
+    
+    ## Runbook
+    - On failure: check Slack #data-alerts
+    - Manual trigger: use `env=backfill` config key
+    """,
+    ...
+):
+    ...
+
+# 3. In the Airflow UI: click on a DAG → "Docs" tab shows this markdown
+```
+
+---
+
+### Scenario 21: Cost Optimization with KubernetesExecutor
+
+**Question:** Your team runs 500 DAGs on Celery with 20 workers always running. How would you migrate to KubernetesExecutor to reduce costs?
+
+**Answer:**
+
+```
+Migration Plan:
+
+Phase 1: Analysis
+  - Profile task resource requirements (CPU/memory distribution)
+  - Identify tasks that need special environments (GPU, high-memory)
+  - Calculate current idle worker time percentage
+
+Phase 2: Infrastructure
+  - Set up Kubernetes cluster (EKS/GKE/AKS)
+  - Deploy Airflow with Helm chart (KubernetesExecutor)
+  - Configure default Pod template with standard resources
+
+Phase 3: Configuration
+```
+```python
+# airflow.cfg
+[kubernetes]
+executor = KubernetesExecutor
+
+# Default pod template
+pod_template_file = /opt/airflow/pod_templates/default.yaml
+
+# In DAGs: override pod config per task
+spark_task = PythonOperator(
+    task_id='heavy_compute',
+    python_callable=compute,
+    executor_config={
+        'pod_override': k8s.V1Pod(
+            spec=k8s.V1PodSpec(
+                containers=[
+                    k8s.V1Container(
+                        name='base',
+                        resources=k8s.V1ResourceRequirements(
+                            requests={'memory': '16Gi', 'cpu': '4'},
+                            limits={'memory': '32Gi', 'cpu': '8'}
+                        )
+                    )
+                ]
+            )
+        )
+    }
+)
+```
+```
+Cost comparison:
+  Celery (20 workers always on):  20 × $0.20/hr × 8760hr = ~$35,000/yr
+  KubernetesExecutor (on-demand): Pay only during task execution
+  
+  If tasks run 20% of the time: ~$7,000/yr (80% cost reduction)
+
+Tradeoffs:
+  ✅ Zero idle cost
+  ✅ Per-task resource profiles
+  ✅ Better isolation
+  ❌ Pod startup adds 10-30s latency per task
+  ❌ More complex debugging
+```
+
+---
+
+### Scenario 22: Implementing Data Contracts in Airflow
+
+**Question:** How do you enforce data contracts (schema + quality checks) between producer and consumer DAGs?
+
+**Answer:**
+
+```python
+# data_contracts.py — shared contract definitions
+from dataclasses import dataclass
+from typing import List
+
+@dataclass
+class ColumnContract:
+    name: str
+    dtype: str
+    nullable: bool
+    min_value: float = None
+    max_value: float = None
+
+SALES_CONTRACT = [
+    ColumnContract('sale_id', 'int64', False),
+    ColumnContract('amount', 'float64', False, min_value=0),
+    ColumnContract('sale_date', 'datetime64[ns]', False),
+    ColumnContract('customer_id', 'int64', False),
+]
+
+# validation_task.py
+@task
+def validate_contract(data_path: str, contract: list) -> str:
+    import pandas as pd
+
+    df = pd.read_parquet(data_path)
+    violations = []
+
+    for col in contract:
+        # Check column exists
+        if col.name not in df.columns:
+            violations.append(f"Missing column: {col.name}")
+            continue
+
+        # Check nullable constraint
+        if not col.nullable and df[col.name].isna().any():
+            violations.append(f"Null values in non-nullable column: {col.name}")
+
+        # Check value ranges
+        if col.min_value is not None and (df[col.name] < col.min_value).any():
+            violations.append(f"Values below minimum in {col.name}: min={col.min_value}")
+
+    if violations:
+        raise AirflowFailException(f"Contract violations: {violations}")
+
+    return data_path   # pass through to next task
+
+# In DAG
+raw_path = extract()
+validated_path = validate_contract(raw_path, SALES_CONTRACT)
+transform(validated_path)
+```
+
+---
+
+### Scenario 23: Building a Self-Healing Pipeline
+
+**Question:** How would you design a pipeline that automatically retries with different strategies based on the type of failure?
+
+**Answer:**
+
+```python
+@task(retries=3, retry_delay=timedelta(minutes=1), retry_exponential_backoff=True)
+def call_external_api(endpoint: str) -> dict:
+    import requests
+    from requests.exceptions import Timeout, ConnectionError
+
+    try:
+        response = requests.get(endpoint, timeout=30)
+        response.raise_for_status()
+        return response.json()
+
+    except Timeout:
+        # Retryable — network timeout, exponential backoff handles it
+        raise
+
+    except requests.HTTPError as e:
+        if e.response.status_code == 429:
+            # Rate limited — wait longer
+            raise AirflowException("Rate limited — will retry with backoff")
+        elif e.response.status_code in (400, 401, 403, 404):
+            # Non-retryable — bad request, wrong credentials
+            raise AirflowFailException(f"Non-retryable HTTP error: {e.response.status_code}")
+        else:
+            # Server errors — retryable
+            raise
+
+    except Exception as e:
+        # Unknown error — log and retry
+        logger.error(f"Unexpected error: {e}")
+        raise
+```
+
+```python
+# Global circuit breaker via Airflow Variable
+@task
+def process_with_circuit_breaker():
+    circuit_state = Variable.get('api_circuit_state', default_var='closed')
+    
+    if circuit_state == 'open':
+        raise AirflowSkipException("Circuit breaker is OPEN — skipping to prevent cascade failures")
+    
+    try:
+        result = call_api()
+        Variable.set('api_failure_count', 0)
+        return result
+    except Exception:
+        count = int(Variable.get('api_failure_count', default_var=0)) + 1
+        Variable.set('api_failure_count', count)
+        if count >= 5:
+            Variable.set('api_circuit_state', 'open')
+            notify_on_call("Circuit breaker OPENED after 5 consecutive failures")
+        raise
+```
+
+---
+
+### Scenario 24: Multi-Tenant Data Pipeline
+
+**Question:** You need to build an Airflow setup where 10 clients each have completely isolated data pipelines with separate credentials, separate compute, and separate monitoring.
+
+**Answer:**
+
+```python
+# Option 1: Factory pattern — one DAG per client
+CLIENT_CONFIGS = {
+    'client_acme': {
+        'schedule': '0 2 * * *',
+        'db_conn': 'acme_postgres',
+        'storage': 's3://acme-data/',
+        'slack_channel': '#acme-alerts'
+    },
+    'client_globex': {
+        'schedule': '0 3 * * *',
+        'db_conn': 'globex_postgres',
+        'storage': 's3://globex-data/',
+        'slack_channel': '#globex-alerts'
+    },
+    # ... 8 more clients
+}
+
+def create_client_dag(client_id: str, config: dict):
+    @dag(
+        dag_id=f'pipeline.{client_id}',
+        schedule_interval=config['schedule'],
+        start_date=datetime(2024, 1, 1),
+        tags=[client_id, 'client-pipeline'],
+        default_args={'on_failure_callback': lambda ctx: alert(config['slack_channel'], ctx)}
+    )
+    def client_pipeline():
+        @task(pool=f'{client_id}_pool')  # dedicated pool per client
+        def extract():
+            hook = PostgresHook(postgres_conn_id=config['db_conn'])
+            ...
+
+        @task
+        def load(data_path: str):
+            # Write to client-specific storage
+            write_to_storage(config['storage'], data_path)
+
+        load(extract())
+    return client_pipeline()
+
+# Create all client DAGs
+for client_id, config in CLIENT_CONFIGS.items():
+    globals()[f'dag_{client_id}'] = create_client_dag(client_id, config)
+```
+
+```
+Isolation Strategy:
+  ├── Separate Airflow Connections per client (no cross-client credential access)
+  ├── Separate Pools per client (quota enforcement)
+  ├── DAG access_control (only client team can see their DAGs)
+  ├── Separate S3/GCS paths per client
+  └── Client-specific failure alerting (separate Slack channels)
+```
+
+---
+
+### Scenario 25: Zero-Downtime DAG Migration
+
+**Question:** You need to rename a DAG (from `old_etl` to `new_etl`) without losing history and without downtime. How?
+
+**Answer:**
+
+```python
+# Step 1: Create new DAG pointing to same logic
+# BUT keep the old DAG running for now
+
+# new_etl.py (new file)
+with DAG('new_etl', schedule_interval='@daily', ...) as dag:
+    # identical tasks to old_etl
+    ...
+
+# Step 2: Pause old DAG
+# airflow dags pause old_etl
+
+# Step 3: Verify new DAG is running correctly for 2-3 days
+
+# Step 4: If history continuity needed — use dag_id aliasing pattern
+# In old_etl.py, update to redirect:
+with DAG('old_etl', schedule_interval=None, ...) as dag:  # set to None (manual only)
+    redirect = EmptyOperator(task_id='migrated_to_new_etl')
+    # Add doc_md explaining migration
+
+# Step 5: Archive old DAG (keep in repo for history reference)
+# Step 6: Delete old DAG after retention period
+
+# Alternative: Use airflow dags delete (destructive — loses history!)
+# airflow dags delete old_etl  ← DO NOT use in production without backing up history
+```
+
+```
+Migration Timeline:
+  Day 0: Deploy new_etl alongside old_etl
+  Day 1: Pause old_etl, verify new_etl
+  Day 3: Confirm new_etl stable — mark old_etl as deprecated
+  Day 30: Archive old_etl code, delete from active dags/
+```
+
+---
+
+## 32. Updated Quick Reference Cheat Sheet
+
+### Airflow 2.x Key Imports
+
+```python
+# Core
+from airflow import DAG
+from airflow.decorators import dag, task, setup, teardown
+from airflow.models import Variable, XCom, DagRun
+from airflow.exceptions import AirflowException, AirflowSkipException, AirflowFailException
+
+# Operators
+from airflow.operators.python import PythonOperator, BranchPythonOperator
+from airflow.operators.bash import BashOperator
+from airflow.operators.empty import EmptyOperator
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
+
+# Sensors
+from airflow.sensors.base import BaseSensorOperator
+from airflow.sensors.external_task import ExternalTaskSensor
+from airflow.providers.amazon.aws.sensors.s3 import S3KeySensor
+
+# Hooks
+from airflow.hooks.base import BaseHook
+from airflow.providers.postgres.hooks.postgres import PostgresHook
+from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+
+# Utilities
+from airflow.utils.task_group import TaskGroup
+from airflow import Dataset
+```
+
+### airflow.cfg Key Settings Reference
+
+| Setting | Section | Description | Default |
+|---|---|---|---|
+| `parallelism` | `core` | Global task parallelism | 32 |
+| `max_active_tasks_per_dag` | `core` | Tasks per DAG | 16 |
+| `max_active_runs_per_dag` | `core` | DAG runs per DAG | 16 |
+| `load_examples` | `core` | Load example DAGs | True |
+| `executor` | `core` | Executor type | SequentialExecutor |
+| `min_file_process_interval` | `scheduler` | DAG reparse interval (s) | 30 |
+| `dag_dir_list_interval` | `scheduler` | DAG folder scan interval (s) | 300 |
+| `scheduler_zombie_task_threshold` | `scheduler` | Zombie detection (s) | 300 |
+| `worker_concurrency` | `celery` | Tasks per Celery worker | 16 |
+| `remote_logging` | `logging` | Enable remote log storage | False |
+
+### Operator Categories Quick Reference
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    OPERATOR QUICK REFERENCE                     │
+│                                                                 │
+│  COMPUTE                                                        │
+│  PythonOperator, BashOperator, DockerOperator                   │
+│  SparkSubmitOperator, KubernetesPodOperator                     │
+│                                                                 │
+│  DATABASE                                                       │
+│  PostgresOperator, MySqlOperator, SnowflakeOperator             │
+│  BigQueryOperator, MsSqlOperator                                │
+│                                                                 │
+│  CLOUD                                                          │
+│  S3CopyObjectOperator, GCSToGCSOperator                         │
+│  EMRCreateJobFlowOperator, DataprocSubmitJobOperator            │
+│  AzureDataFactoryRunPipelineOperator                            │
+│                                                                 │
+│  COMMUNICATION                                                  │
+│  EmailOperator, SlackWebhookOperator                            │
+│  HttpOperator                                                   │
+│                                                                 │
+│  CONTROL FLOW                                                   │
+│  BranchPythonOperator, EmptyOperator                            │
+│  TriggerDagRunOperator, ExternalTaskSensor                      │
+│                                                                 │
+│  DATA VALIDATION                                                │
+│  SQLCheckOperator, SQLValueCheckOperator                        │
+│  SQLThresholdCheckOperator, SQLIntervalCheckOperator            │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Complete Interview Preparation Checklist
+
+```
+Beginner Level:
+  ☐ What is Airflow and what problem does it solve?
+  ☐ What is a DAG, Task, Operator, Task Instance?
+  ☐ What are the 4 core components of Airflow?
+  ☐ How does scheduling work (start_date, schedule_interval, catchup)?
+  ☐ What is XCom? What are its limits?
+  ☐ What is a Sensor? Poke vs Reschedule?
+  ☐ What is a Hook?
+  ☐ How do you define task dependencies?
+  ☐ What is the Metadata Database?
+  ☐ What is default_args?
+
+Intermediate Level:
+  ☐ Compare LocalExecutor, CeleryExecutor, KubernetesExecutor
+  ☐ Explain logical_date vs execution_date vs actual runtime
+  ☐ What are Trigger Rules?
+  ☐ What are Pools?
+  ☐ What is DAG Serialization and why is it useful?
+  ☐ TaskGroups vs SubDAGs
+  ☐ What is Dynamic Task Mapping?
+  ☐ What is the Triggerer and Deferrable Operators?
+  ☐ How do you handle secrets in production?
+  ☐ What are Datasets (data-aware scheduling)?
+
+Advanced Level:
+  ☐ How do you create a custom operator?
+  ☐ What are Cluster Policies?
+  ☐ How does the Scheduler loop work internally?
+  ☐ What is a LocalTaskJob?
+  ☐ How does HA Scheduler work?
+  ☐ What is Git-Sync?
+  ☐ What are Custom Timetables?
+  ☐ How do you implement RBAC?
+  ☐ How do you tune Airflow performance?
+  ☐ How do you integrate Airflow with dbt, Spark, Databricks?
+
+Design Scenarios:
+  ☐ Design a daily ETL pipeline with alerting
+  ☐ Handle late-arriving data
+  ☐ Process 1000 files in parallel
+  ☐ Cross-DAG dependencies
+  ☐ Rate-limited API processing
+  ☐ Multi-environment (dev/prod) pipelines
+  ☐ ML training pipeline with conditional deployment
+  ☐ Cost optimization with KubernetesExecutor
+  ☐ Multi-tenant Airflow setup
+  ☐ Zero-downtime DAG migration
+```
+
+---
+
 *End of Apache Airflow Interview & Study Guide*
-*Topics: Architecture · DAG Authoring · Operators · Scheduling · Executors · XCom · Advanced Features · Production Practices · 60 Interview Questions · 15 Real Scenarios*
+*Topics: Architecture · DAG Authoring · Operators · Scheduling · Executors · XCom · Advanced Features · Custom Operators/Plugins · RBAC & Security · Configuration · Managed Services (MWAA/Composer/Astronomer) · Airflow 1→2 Migration · Setup/Teardown · Timetables · Priority Weights · Monitoring & OpenLineage · dbt/Spark/Databricks Integration · Cluster Policies · Scheduler Internals · 90 Interview Questions · 25 Real Scenarios*
