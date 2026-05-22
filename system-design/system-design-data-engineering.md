@@ -586,7 +586,7 @@ graph LR
         CLM[Claims Processing\nSQL Server]
         PHA[Pharmacy\nSFTP CSV drops]
     end
-    subgraph Platform - Azure
+    subgraph PA["Platform - Azure"]
         ADLS[ADLS Gen2\nData Lake - Bronze/Silver]
         SYN[Azure Synapse\nDWH + Spark]
         ADF[Azure Data Factory\nBatch Ingestion ETL]
@@ -1365,10 +1365,10 @@ erDiagram
         int customer_key FK
         int product_key FK
         int store_key FK
-        decimal quantity_sold
-        decimal revenue
-        decimal discount_amount
-        decimal profit
+        float quantity_sold
+        float revenue
+        float discount_amount
+        float profit
     }
 
     DIM_DATE {
@@ -1401,7 +1401,7 @@ erDiagram
         string category
         string subcategory
         string brand
-        decimal unit_cost
+        float unit_cost
     }
 
     DIM_STORE {
@@ -1912,13 +1912,13 @@ erDiagram
         int date_key FK
         int diagnosis_group_key FK
         int provider_key FK
-        decimal total_charges
+        float total_charges
     }
 
     BRIDGE_PATIENT_DIAGNOSIS {
         int diagnosis_group_key FK
         int diagnosis_key FK
-        decimal weighting_factor
+        float weighting_factor
     }
 
     DIM_DIAGNOSIS {
@@ -2013,10 +2013,10 @@ erDiagram
         int product_key FK
         int customer_key FK
         int promotion_key FK
-        decimal units_sold
-        decimal revenue
-        decimal cost
-        decimal markdown_amount
+        float units_sold
+        float revenue
+        float cost
+        float markdown_amount
     }
     DIM_PRODUCT {
         int product_key PK
@@ -2025,8 +2025,8 @@ erDiagram
         string department
         string category
         string private_label_flag
-        decimal unit_cost
-        decimal unit_retail_price
+        float unit_cost
+        float unit_retail_price
     }
     DIM_STORE {
         int store_key PK
@@ -2065,10 +2065,10 @@ erDiagram
         int diagnosis_group_key FK
         int procedure_key FK
         int plan_key FK
-        decimal billed_amount
-        decimal allowed_amount
-        decimal paid_amount
-        decimal member_responsibility
+        float billed_amount
+        float allowed_amount
+        float paid_amount
+        float member_responsibility
         int claim_status_key FK
     }
 
@@ -2227,13 +2227,13 @@ This is the most fundamental concept in streaming.
 
 ```mermaid
 graph LR
-    subgraph Real World - Event Time
+    subgraph RW["Real World - Event Time"]
         E1[Order placed\nat 10:00:00]
         E2[Order placed\nat 10:00:05]
         E3[Order placed\nat 10:00:03]
     end
     
-    subgraph System - Processing Time
+    subgraph SP["System - Processing Time"]
         P1[Arrives at processor\nat 10:00:02]
         P2[Arrives at processor\nat 10:00:06]
         P3[Arrives at processor\nat 10:00:09]
@@ -2485,7 +2485,7 @@ Failure scenario:
 
 ```mermaid
 graph TD
-    subgraph ZooKeeper/KRaft
+    subgraph ZooKeeper-KRaft
         ZK[Cluster Coordination\nLeader election\nConfig management]
     end
     
@@ -2495,7 +2495,7 @@ graph TD
         B3[Broker 3\nFollower for P0,P1,P2]
     end
     
-    subgraph Topic: orders - RF=3, Partitions=3
+    subgraph TP["Topic: orders (RF=3, Partitions=3)"]
         P0[Partition 0\nOffset 0..N]
         P1[Partition 1\nOffset 0..M]
         P2[Partition 2\nOffset 0..K]
@@ -2885,7 +2885,7 @@ sequenceDiagram
     DA->>K: GPS location event (every 5s)
     RA->>K: Ride request event
     K->>F: Consume supply + demand streams
-    Note over F: Geohash both events\nTumbling 30s window\nCount supply/demand per cell
+    Note over F: Geohash both events<br/>Tumbling 30s window<br/>Count supply/demand per cell
     F->>RD: surge_multiplier per geohash
     UI->>RD: GET surge for pickup location
     RD->>UI: 1.8x surge → show to rider
@@ -4425,7 +4425,7 @@ graph TD
         CS[Query parsing, optimization\nMetadata management\nAccess control]
     end
     
-    subgraph Compute Layer - Virtual Warehouses
+    subgraph CL["Compute Layer - Virtual Warehouses"]
         VW1[XS Warehouse\nAnalytics team]
         VW2[L Warehouse\nML Training jobs]
         VW3[M Warehouse\nReporting]
@@ -4674,7 +4674,7 @@ Microsoft Fabric is Microsoft's end-to-end unified analytics platform, combining
 
 ```mermaid
 graph TD
-    subgraph Before Fabric - Fragmented
+    subgraph BF["Before Fabric - Fragmented"]
         ADF[Azure Data Factory\nIngestion]
         ADLS[ADLS Gen2\nStorage]
         ADB[Azure Databricks\nSpark Processing]
@@ -4683,7 +4683,7 @@ graph TD
         AML[Azure ML\nMachine Learning]
     end
     
-    subgraph After Fabric - Unified
+    subgraph AF["After Fabric - Unified"]
         OL[OneLake\nSingle unified storage\nDelta Parquet everywhere]
         FDE[Fabric Data Engineering\nSpark Notebooks]
         FDW[Fabric Data Warehouse\nSQL Analytics]
@@ -5037,7 +5037,7 @@ graph TD
         K[Apache Kafka\nTopic: transactions\n30 partitions\nRF=3]
     end
 
-    subgraph Real-time Processing - Flink
+    subgraph RT["Real-time Processing - Flink"]
         F[Flink Job 1\nFraud Scoring\nUser behavior features\nLast 5 min window]
         F2[Flink Job 2\nVelocity Check\nN txns in M minutes\nper user/card]
     end
@@ -5055,7 +5055,7 @@ graph TD
         AC[Action Service\nBlock / Allow / Review]
     end
 
-    subgraph Storage - Batch
+    subgraph SB["Storage - Batch"]
         S3[S3 / ADLS\nRaw transaction events\nParquet + Delta Lake]
         DWH[Snowflake / BigQuery\nAggregated fraud reports\nStar schema]
     end
@@ -5148,21 +5148,21 @@ graph TD
         FS[File Scanner\nAirflow sensor\nfor CSV drops]
     end
 
-    subgraph Landing Zone - Raw
+    subgraph LZ["Landing Zone - Raw"]
         RAW[ADLS Gen2 - Bronze\nRaw Zone\nImmutable\nEncrypted at rest AES-256]
     end
 
-    subgraph PHI Processing - Secure Enclave
+    subgraph PHI["PHI Processing - Secure Enclave"]
         PIE[PHI Identification Engine\nPresidio / custom NER\nDetect SSN, DOB, Name, MRN]
         DID[De-identification Service\nTokenize PII\nAge bucket DOB\nMask address to ZIP+3]
         TKV[Token Vault\nAzure Key Vault\nMaps token → real PHI]
     end
 
-    subgraph Processed Zone - Silver
+    subgraph PZ["Processed Zone - Silver"]
         SIL[ADLS Gen2 - Silver\nDe-identified data\nParquet / Delta Lake\nAccessible to analysts]
     end
 
-    subgraph Analytics Zone - Gold
+    subgraph AZ["Analytics Zone - Gold"]
         GLD[Synapse Analytics / BigQuery\nDe-identified aggregated data\nDimensional models\nPopulation health KPIs]
     end
 
@@ -5219,12 +5219,12 @@ erDiagram
         int product_key FK
         int channel_key FK
         int promo_key FK
-        decimal quantity
-        decimal unit_price
-        decimal discount_amount
-        decimal revenue
-        decimal cogs
-        decimal gross_profit
+        float quantity
+        float unit_price
+        float discount_amount
+        float revenue
+        float cogs
+        float gross_profit
     }
 
     FACT_PAGE_VIEW {
@@ -5258,7 +5258,7 @@ erDiagram
         string category
         string subcategory
         string brand
-        decimal current_list_price
+        float current_list_price
     }
 
     DIM_DATE {
@@ -5303,17 +5303,17 @@ flowchart TD
         FT[Fivetran\nConnectors for all sources]
     end
 
-    subgraph Raw Layer - Snowflake
+    subgraph RL["Raw Layer - Snowflake"]
         STG[RAW schema\nUnmodified source tables\ne.g. raw.orders, raw.events]
     end
 
-    subgraph Transformation - dbt
+    subgraph TR["Transformation - dbt"]
         DBT_STG[Staging models\nstg_orders, stg_events\nType casting, renaming]
         DBT_INT[Intermediate models\nint_customer_orders\nJoins + business logic]
         DBT_MART[Mart models\nfact_order_line\ndim_customer\nfact_page_view]
     end
 
-    subgraph Serving - Snowflake
+    subgraph SV["Serving - Snowflake"]
         SNOW[Snowflake\nMarts schema\nBI access]
     end
 
@@ -5762,12 +5762,12 @@ A manufacturing company has 5,000 machines across 20 factories:
 
 ```mermaid
 flowchart TD
-    subgraph Edge Layer - Factories
+    subgraph EL["Edge Layer - Factories"]
         PLC[PLC Controllers\nOPC-UA protocol\n50 readings/sec/machine]
         GW[Edge Gateway\nKafka edge broker\nBuffer during WAN outage]
     end
 
-    subgraph Cloud - Ingestion
+    subgraph CI["Cloud - Ingestion"]
         EH[Azure Event Hubs\nor Kafka on AKS\n250K events/sec]
     end
 
@@ -5990,23 +5990,23 @@ flowchart TD
         NCH[NCQA / CMS Reference\nAnnual file drops]
     end
 
-    subgraph Ingestion - Azure Data Factory
+    subgraph IG["Ingestion - Azure Data Factory"]
         ADF2[ADF Pipelines\nCDC via SQL Server Change Tracking\nor full refresh for small tables]
     end
 
-    subgraph Bronze Lakehouse - OneLake
+    subgraph BL["Bronze Lakehouse - OneLake"]
         BRZ2[Raw claims, eligibility, provider\nDelta format\nImmutable, as-is\nPHI encrypted at rest]
     end
 
-    subgraph PHI De-identification - Spark Notebook
+    subgraph PD["PHI De-identification - Spark Notebook"]
         DID2[Presidio NER\nDetect: MRN, DOB, SSN, Name\nTokenize with Azure Key Vault]
     end
 
-    subgraph Silver Lakehouse - OneLake
+    subgraph SL["Silver Lakehouse - OneLake"]
         SLV2[Cleaned claims\nDe-identified member data\nConformed schema\nDelta MERGE for upserts]
     end
 
-    subgraph Gold Warehouse - Fabric Warehouse
+    subgraph GW["Gold Warehouse - Fabric Warehouse"]
         GLD2[Dimensional Model\nfact_medical_claim\ndim_member, dim_provider\ndim_hedis_measure\nSCD Type 2 on dim_member]
         HEDIS[HEDIS Measure Tables\nfact_hedis_numerator\nfact_hedis_denominator\nComputed by measure specs]
     end
@@ -7870,7 +7870,7 @@ flowchart LR
         T3[Text: 'quarterly revenue report']
     end
     
-    subgraph Embedding Model\nBERT / OpenAI / MiniLM
+    subgraph EM["Embedding Model (BERT / OpenAI / MiniLM)"]
         EM[Converts text to\nhigh-dimensional vector\nCaptures semantic meaning]
     end
     
@@ -7899,7 +7899,7 @@ flowchart LR
 **HNSW (Hierarchical Navigable Small World):**
 ```mermaid
 graph TD
-    subgraph Layer 2\nSparse long-range connections
+    subgraph L2["Layer 2 - Sparse long-range connections"]
         L2A((A)) --- L2B((F))
         L2B --- L2C((K))
     end
@@ -7909,7 +7909,7 @@ graph TD
         L1C --- L1D((I))
         L1D --- L1E((K))
     end
-    subgraph Layer 0\nDense short-range connections
+    subgraph L0["Layer 0 - Dense short-range connections"]
         ALL((All nodes\nfine-grained graph))
     end
     
@@ -7935,13 +7935,13 @@ RAG (Retrieval-Augmented Generation) lets an LLM answer questions about your pri
 
 ```mermaid
 flowchart TD
-    subgraph Indexing Pipeline\nRun once / on update
+    subgraph IP["Indexing Pipeline (run once / on update)"]
         D[Documents\nPDFs, Confluence, SharePoint] --> CH[Chunking\nSplit into 512-token chunks\nwith 50-token overlap]
         CH --> EMB[Embedding Model\nOpenAI text-embedding-3-small\nor local MiniLM]
         EMB --> VDB[(Vector DB\nPinecone / pgvector)]
     end
 
-    subgraph Query Pipeline\nRun on every user question
+    subgraph QP["Query Pipeline (runs on every user question)"]
         Q[User Query:\n'What is HEDIS CDC measure?'] --> QEMB[Embed query\nsame model]
         QEMB --> SIM[Similarity Search\nFind top-5 similar chunks]
         VDB --> SIM
@@ -8024,7 +8024,7 @@ Caching is critical for reducing latency and database load. As a data engineer y
 
 ```mermaid
 flowchart TD
-    subgraph Cache-Aside\nLazy loading
+    subgraph CA["Cache-Aside (Lazy loading)"]
         APP1[App] -->|1 Read| CACHE1{Cache}
         CACHE1 -->|2a Cache HIT\nReturn immediately| APP1
         CACHE1 -->|2b Cache MISS| DB1[(Database)]
@@ -8040,7 +8040,7 @@ flowchart LR
         CACHE2 -->|Synchronously write| DB2[(Database)]
     end
 
-    subgraph Write-Behind\nWrite-Back
+    subgraph WB["Write-Behind / Write-Back"]
         APP3[App] -->|Write| CACHE3[(Cache)]
         CACHE3 -->|Async batch write\nlater| DB3[(Database)]
     end
